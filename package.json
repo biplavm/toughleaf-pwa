@@ -1,0 +1,19 @@
+﻿{
+  "name": "@toughleaf/sdk-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal UI for Platform SDK recipes (local dev)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@toughleaf/platform-sdk": "file:../toughleaf-platform-sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.4.0"
+  }
+}

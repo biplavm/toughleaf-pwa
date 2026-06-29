@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tough Leaf SDK Studio</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">TL-758 · Platform SDK</p>
+        <h1>SDK Studio</h1>
+        <p class="subtitle">Interactive recipes for local API integration</p>
+      </header>
+
+      <nav class="tabs">
+        <button type="button" data-recipe="lookup" class="tab active">01 · Public lookup</button>
+        <button type="button" data-recipe="login" class="tab">02 · Login + user</button>
+        <button type="button" data-recipe="observe" class="tab">03 · Observe dedupe</button>
+      </nav>
+
+      <section class="card">
+        <h2 id="recipe-title">Recipe 01 — Public lookup</h2>
+        <p id="recipe-desc" class="hint">No auth — same JSON as frontend public dropdowns.</p>
+        <div class="actions">
+          <button type="button" id="btn-run" class="btn-primary">Run recipe</button>
+          <a id="doc-link" href="#" target="_blank" rel="noopener">Open full guide →</a>
+        </div>
+        <pre id="output" class="output">Click Run recipe…</pre>
+      </section>
+
+      <section class="card auth-card">
+        <h2>Sign in (recipes 02–03)</h2>
+        <form id="login-form">
+          <label>
+            Email
+            <input type="email" id="email" required autocomplete="username" />
+          </label>
+          <label>
+            Password
+            <input type="password" id="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit">Sign in</button>
+        </form>
+        <p id="session-status">Session: SIGNED_OUT</p>
+      </section>
+
+      <footer>
+        Documentation: <code>../toughleaf-platform-sdk/docs/</code> ·
+        <code>docs/ONBOARDING.md</code>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
