@@ -77,6 +77,30 @@ h1 {
   cursor: pointer;
 }
 
+.meta {
+  font-size: 0.8rem;
+  color: #2563eb;
+  margin: 0.25rem 0 0;
+}
+
+.snippet-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 1rem 0 0.35rem;
+}
+
+.snippet {
+  background: #1e293b;
+  color: #cbd5e1;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .output {
   background: #0f172a;
   color: #e2e8f0;
@@ -85,6 +109,7 @@ h1 {
   overflow: auto;
   font-size: 0.85rem;
   min-height: 120px;
+  margin-top: 0;
 }
 
 .auth-card label {

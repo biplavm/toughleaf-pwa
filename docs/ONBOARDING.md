@@ -5,29 +5,36 @@ This guide maps Tough Leaf product flows to the Platform SDK documentation. The 
 ## Prerequisites
 
 - Laravel backend on port **8080**
-- SDK built: `npm run build` in `toughleaf-platform-sdk`
+- SDK built: `npm run build` in `../platform-sdk`
 - Studio (optional): `npm run dev` in this repo → http://localhost:5175
+- Playground (audit lab): `npm run dev` in `../platform-sdk-playground` → http://localhost:5174
 
 Postgres and internal development tooling are not required for SDK integration.
 
 ## Recommended reading order
 
-1. [Getting started](../../toughleaf-platform-sdk/docs/getting-started.md)
-2. [API envelope](../../toughleaf-platform-sdk/docs/concepts/api-envelope.md)
+1. [Getting started](../../platform-sdk/docs/getting-started.md)
+2. [API envelope](../../platform-sdk/docs/concepts/api-envelope.md)
 3. Recipes (copy-paste integration examples):
-   - [01 Public lookup](../../toughleaf-platform-sdk/docs/recipes/01-public-lookup.md)
-   - [02 Login + getUser](../../toughleaf-platform-sdk/docs/recipes/02-login-get-user.md)
-   - [03 Observe dedupe](../../toughleaf-platform-sdk/docs/recipes/03-login-observe-dedupe.md)
+   - [01 Public lookup](../../platform-sdk/docs/recipes/01-public-lookup.md)
+   - [02 Login + getUser](../../platform-sdk/docs/recipes/02-login-get-user.md)
+   - [03 Observe dedupe](../../platform-sdk/docs/recipes/03-login-observe-dedupe.md)
+   - [04 updateUser (MUT-A)](../../platform-sdk/docs/recipes/04-update-user-muta.md) — TL-808
+   - [05 observeCompany](../../platform-sdk/docs/recipes/05-observe-company.md) — TL-808
+   - [06 updateCompany](../../platform-sdk/docs/recipes/06-update-company.md) — TL-808
+4. Playground → Studio map: `z.edb/TL-808-sdk-account-and-company/sdd/PLAYGROUND-TO-STUDIO.edb`
 
 ## Product flow index
 
 | Application flow | Documentation |
 |------------------|---------------|
-| Sign-in | [authentication.md](../../toughleaf-platform-sdk/docs/guides/authentication.md) |
-| User profile / header | [account-user.md](../../toughleaf-platform-sdk/docs/guides/account-user.md) |
-| Projects list | [projects-list.md](../../toughleaf-platform-sdk/docs/guides/projects-list.md) |
-| Public reference data | [public-lookup.md](../../toughleaf-platform-sdk/docs/guides/public-lookup.md) |
-| Environment / feature flags | [env-features.md](../../toughleaf-platform-sdk/docs/guides/env-features.md) |
+| Sign-in | [authentication.md](../../platform-sdk/docs/guides/authentication.md) |
+| User profile / header | [account-user.md](../../platform-sdk/docs/guides/account-user.md) |
+| Profile update (TL-808) | [04-update-user-muta.md](../../platform-sdk/docs/recipes/04-update-user-muta.md) |
+| Company settings (TL-808) | [06-update-company.md](../../platform-sdk/docs/recipes/06-update-company.md) |
+| Projects list | [projects-list.md](../../platform-sdk/docs/guides/projects-list.md) |
+| Public reference data | [public-lookup.md](../../platform-sdk/docs/guides/public-lookup.md) |
+| Environment / feature flags | [env-features.md](../../platform-sdk/docs/guides/env-features.md) |
 
 ## Guide structure
 

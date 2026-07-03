@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@toughleaf/sdk-studio",
   "version": "0.1.0",
   "private": true,
@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@toughleaf/platform-sdk": "file:../toughleaf-platform-sdk"
+    "@toughleaf/platform-sdk": "file:../platform-sdk"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

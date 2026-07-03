@@ -1,4 +1,5 @@
-import { createClient, type ResourceState, type UserData } from '@toughleaf/platform-sdk';
+import { createClient } from '@toughleaf/platform-sdk';
+import { RECIPES, type RecipeId } from './recipes';
 
 const baseUrl = import.meta.env.VITE_TL_API_BASE ?? '/api/v1';
 const client = createClient({ baseUrl });
@@ -6,68 +7,13 @@ const client = createClient({ baseUrl });
 const output = document.getElementById('output')!;
 const recipeTitle = document.getElementById('recipe-title')!;
 const recipeDesc = document.getElementById('recipe-desc')!;
+const recipeMeta = document.getElementById('recipe-meta')!;
+const recipeCode = document.getElementById('recipe-code')!;
 const docLink = document.getElementById('doc-link') as HTMLAnchorElement;
 const sessionStatus = document.getElementById('session-status')!;
 const loginForm = document.getElementById('login-form') as HTMLFormElement;
 const emailInput = document.getElementById('email') as HTMLInputElement;
 const passwordInput = document.getElementById('password') as HTMLInputElement;
-
-type RecipeId = 'lookup' | 'login' | 'observe';
-
-const recipes: Record<
-  RecipeId,
-  { title: string; desc: string; doc: string; run: () => Promise<unknown> }
-> = {
-  lookup: {
-    title: 'Recipe 01 — Public lookup',
-    desc: 'No auth — same JSON as frontend public dropdowns.',
-    doc: '../toughleaf-platform-sdk/docs/recipes/01-public-lookup.md',
-    run: async () => {
-      const states = await client.lookup.listStates();
-      return { count: states.length, sample: states.slice(0, 3) };
-    },
-  },
-  login: {
-    title: 'Recipe 02 — Login + getUser',
-    desc: 'Sign in then fetch GET /user.',
-    doc: '../toughleaf-platform-sdk/docs/recipes/02-login-get-user.md',
-    run: async () => {
-      await ensureSignedIn();
-      const user = await client.account.getUser();
-      return { id: user.id, email: user.email, name: `${user.first_name} ${user.last_name}` };
-    },
-  },
-  observe: {
-    title: 'Recipe 03 — Observe dedupe',
-    desc: 'Two subscribers → one GET /user.',
-    doc: '../toughleaf-platform-sdk/docs/recipes/03-login-observe-dedupe.md',
-    run: async () => {
-      await ensureSignedIn();
-      let fetchCount = 0;
-      const originalFetch = globalThis.fetch.bind(globalThis);
-      const wrappedFetch: typeof fetch = async (input, init) => {
-        const url = String(input);
-        if (url.includes('/user')) fetchCount += 1;
-        return originalFetch(input, init);
-      };
-      const probe = createClient({ baseUrl, fetchImpl: wrappedFetch });
-      probe.setAccessToken(client.getAccessToken());
-
-      const results: string[] = [];
-      const a = probe.account.observeUser().subscribe((s: ResourceState<UserData>) => {
-        if (s.data) results.push(`header:${s.data.email}`);
-      });
-      const b = probe.account.observeUser().subscribe((s: ResourceState<UserData>) => {
-        if (s.data) results.push(`profile:${s.data.email}`);
-      });
-
-      await new Promise((r) => setTimeout(r, 300));
-      a.unsubscribe();
-      b.unsubscribe();
-      return { observers: results, getUserRequests: fetchCount };
-    },
-  },
-};
 
 let active: RecipeId = 'lookup';
 
@@ -77,10 +23,18 @@ function show(data: unknown): void {
 
 function setRecipe(id: RecipeId): void {
   active = id;
-  const r = recipes[id];
+  const r = RECIPES[id];
   recipeTitle.textContent = r.title;
   recipeDesc.textContent = r.desc;
   docLink.href = r.doc;
+  recipeCode.textContent = r.code;
+
+  const metaParts: string[] = [];
+  if (r.ticket) metaParts.push(r.ticket);
+  if (r.harness) metaParts.push(`Harness: ${r.harness}`);
+  if (r.needsAuth) metaParts.push('Requires sign-in');
+  recipeMeta.textContent = metaParts.length ? metaParts.join(' · ') : 'No auth required';
+
   document.querySelectorAll('.tab').forEach((el) => {
     el.classList.toggle('active', (el as HTMLElement).dataset.recipe === id);
   });
@@ -112,7 +66,13 @@ loginForm.addEventListener('submit', async (e) => {
 
 document.getElementById('btn-run')!.addEventListener('click', async () => {
   try {
-    show(await recipes[active].run());
+    show(
+      await RECIPES[active].run({
+        baseUrl,
+        client,
+        ensureSignedIn,
+      }),
+    );
   } catch (err) {
     show({ error: String(err) });
   }
