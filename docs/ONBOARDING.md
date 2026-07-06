@@ -5,11 +5,25 @@ This guide maps Tough Leaf product flows to the Platform SDK documentation. The 
 ## Prerequisites
 
 - Laravel backend on port **8080**
-- SDK built: `npm run build` in `../platform-sdk`
-- Studio (optional): `npm run dev` in this repo → http://localhost:5175
-- Playground (audit lab): `npm run dev` in `../platform-sdk-playground` → http://localhost:5174
+- Studio: `npm run dev` in this repo → http://localhost:5175
 
-Postgres and internal development tooling are not required for SDK integration.
+The Studio is **pure JavaScript** and does not link the SDK source repo. It consumes the compiled, versioned browser bundle committed under `vendor/@toughleaf/platform-sdk/` (one deliverable per SDK tag). TypeScript is only a dev-time checker (`npm run typecheck` via `checkJs`); merchants can copy the recipes into any stack (vanilla, React, Vue, Svelte, TS).
+
+### Updating the vendored SDK
+
+```bash
+# From a published GitHub Release (one deliverable per tag; recommended)
+SDK_TAG=v0.3.1 GITHUB_TOKEN=... npm run vendor:sdk
+
+# From a local SDK build (development)
+npm run vendor:sdk                       # uses ../toughleaf-platform-sdk/dist/cdn
+SDK_DIST=/path/to/bundle npm run vendor:sdk
+
+# Verify the committed vendor matches its manifest checksums (also runs in CI)
+node scripts/verify-vendor.mjs
+```
+
+All modes verify the sha256 checksums in `manifest.json` before vendoring.
 
 ## Recommended reading order
 

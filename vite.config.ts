@@ -1,6 +1,18 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
+const dir = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@toughleaf/platform-sdk': path.resolve(
+        dir,
+        'vendor/@toughleaf/platform-sdk/index.js',
+      ),
+    },
+  },
   server: {
     port: 5175,
     strictPort: true,

@@ -1,0 +1,29 @@
+{
+  "name": "@toughleaf/platform-sdk",
+  "version": "0.3.1",
+  "globalName": "ToughLeafPlatformSDK",
+  "esm": "toughleaf-platform-sdk.esm.js",
+  "types": "toughleaf-platform-sdk.d.ts",
+  "iife": "toughleaf-platform-sdk.js",
+  "files": [
+    "toughleaf-platform-sdk.js",
+    "toughleaf-platform-sdk.js.map",
+    "toughleaf-platform-sdk.min.js",
+    "toughleaf-platform-sdk.min.js.map",
+    "toughleaf-platform-sdk.esm.js",
+    "toughleaf-platform-sdk.esm.js.map",
+    "toughleaf-platform-sdk.d.ts"
+  ],
+  "sha256": {
+    "toughleaf-platform-sdk.js": "bf8f5bea3f1bd98d1d612d35fa81056fe3cfdd3aada71ead315a6abcbf0b6af1",
+    "toughleaf-platform-sdk.js.map": "19da20f5c8e638d9a22bf598d24623fcd11220c64b8683eadd66c0f01507120f",
+    "toughleaf-platform-sdk.min.js": "ee11522a1b7978d16dd9172afd24af36c88173400e138f732b2fea28722437f8",
+    "toughleaf-platform-sdk.min.js.map": "43dc41f601760ea0b7a297239984e755978a962ac070a498f94af5809ee00331",
+    "toughleaf-platform-sdk.esm.js": "486e701874349d79dcda0f38574e425e800bdcdc7f0087283c517b22376aeefe",
+    "toughleaf-platform-sdk.esm.js.map": "1c87105ab2b65cdf0b47f912ab81ec40c3570f5919f2b8e92ae0baf9e17e954d",
+    "toughleaf-platform-sdk.d.ts": "5d425d5bef17b4eb5ad270eac508fb7e9c204d5ccbc7a1de9cf5612bef72ea2c"
+  },
+  "tag": "v0.3.1",
+  "built_at": "2026-07-06T17:06:18.985Z",
+  "git_sha": "ad0cf38"
+}

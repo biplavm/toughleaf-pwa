@@ -3,14 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Minimal UI for Platform SDK recipes (local dev)",
+  "description": "Pure-JS studio for Platform SDK recipes — consumes the versioned browser bundle",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@toughleaf/platform-sdk": "file:../platform-sdk"
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "vendor:sdk": "node scripts/vendor-sdk.mjs"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

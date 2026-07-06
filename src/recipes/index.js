@@ -1,16 +1,29 @@
-import {
-  createClient,
-  type CompanyData,
-  type ResourceState,
-  type UserData,
-} from '@toughleaf/platform-sdk';
-import type { RecipeContext, RecipeDef, RecipeId } from './types';
+import { createClient } from '@toughleaf/platform-sdk';
 
-const DOC = '../platform-sdk/docs/recipes';
+const DOC = 'https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes';
 
-export type { RecipeId } from './types';
+/**
+ * @typedef {'lookup' | 'login' | 'observe' | 'update-user' | 'observe-company' | 'update-company'} RecipeId
+ *
+ * @typedef {object} RecipeContext
+ * @property {string} baseUrl
+ * @property {import('@toughleaf/platform-sdk').ToughLeafClient} client
+ * @property {() => Promise<void>} ensureSignedIn
+ *
+ * @typedef {object} RecipeDef
+ * @property {RecipeId} id
+ * @property {string} title
+ * @property {string} desc
+ * @property {string} doc
+ * @property {string} [ticket]
+ * @property {string} [harness]
+ * @property {boolean} needsAuth
+ * @property {string} code
+ * @property {(ctx: RecipeContext) => Promise<unknown>} run
+ */
 
-export const RECIPES: Record<RecipeId, RecipeDef> = {
+/** @type {Record<RecipeId, RecipeDef>} */
+export const RECIPES = {
   lookup: {
     id: 'lookup',
     title: 'Recipe 01 — Public lookup',
@@ -59,7 +72,7 @@ const b = client.account.observeUser().subscribe(/* profile */);
       await ensureSignedIn();
       let fetchCount = 0;
       const originalFetch = globalThis.fetch.bind(globalThis);
-      const wrappedFetch: typeof fetch = async (input, init) => {
+      const wrappedFetch = async (input, init) => {
         const url = String(input);
         if (url.includes('/user') && (init?.method ?? 'GET') === 'GET') {
           fetchCount += 1;
@@ -69,11 +82,11 @@ const b = client.account.observeUser().subscribe(/* profile */);
       const probe = createClient({ baseUrl, fetchImpl: wrappedFetch });
       probe.setAccessToken(client.getAccessToken());
 
-      const results: string[] = [];
-      const a = probe.account.observeUser().subscribe((s: ResourceState<UserData>) => {
+      const results = [];
+      const a = probe.account.observeUser().subscribe((s) => {
         if (s.data) results.push(`header:${s.data.email}`);
       });
-      const b = probe.account.observeUser().subscribe((s: ResourceState<UserData>) => {
+      const b = probe.account.observeUser().subscribe((s) => {
         if (s.data) results.push(`profile:${s.data.email}`);
       });
 
@@ -98,7 +111,7 @@ const b = client.account.observeUser().subscribe(/* profile */);
       await ensureSignedIn();
       let fetchCount = 0;
       const originalFetch = globalThis.fetch.bind(globalThis);
-      const countingFetch: typeof fetch = async (input, init) => {
+      const countingFetch = async (input, init) => {
         const url = String(input);
         if (url.includes('/user') && (init?.method ?? 'GET') === 'GET') {
           fetchCount += 1;
@@ -108,8 +121,8 @@ const b = client.account.observeUser().subscribe(/* profile */);
       const probe = createClient({ baseUrl, fetchImpl: countingFetch });
       probe.setAccessToken(client.getAccessToken());
 
-      let observedName: string | undefined;
-      const sub = probe.account.observeUser().subscribe((state: ResourceState<UserData>) => {
+      let observedName;
+      const sub = probe.account.observeUser().subscribe((state) => {
         if (state.data?.first_name) observedName = state.data.first_name;
       });
 
@@ -144,7 +157,7 @@ const b = client.account.observeUser().subscribe(/* profile */);
       await ensureSignedIn();
       let companyFetchCount = 0;
       const originalFetch = globalThis.fetch.bind(globalThis);
-      const countingFetch: typeof fetch = async (input, init) => {
+      const countingFetch = async (input, init) => {
         const url = String(input);
         if (
           url.includes('/company') &&
@@ -158,8 +171,9 @@ const b = client.account.observeUser().subscribe(/* profile */);
       const probe = createClient({ baseUrl, fetchImpl: countingFetch });
       probe.setAccessToken(client.getAccessToken());
 
-      let snapshot: CompanyData | undefined;
-      const sub = probe.account.observeCompany().subscribe((state: ResourceState<CompanyData>) => {
+      /** @type {import('@toughleaf/platform-sdk').CompanyData | undefined} */
+      let snapshot;
+      const sub = probe.account.observeCompany().subscribe((state) => {
         if (state.data) snapshot = state.data;
       });
 
@@ -192,8 +206,8 @@ const b = client.account.observeUser().subscribe(/* profile */);
       await ensureSignedIn();
       const updated = await client.account.updateCompany({ company_name: 'Updated Co' });
 
-      let observed: string | undefined;
-      const sub = client.account.observeCompany().subscribe((state: ResourceState<CompanyData>) => {
+      let observed;
+      const sub = client.account.observeCompany().subscribe((state) => {
         if (state.data?.company_name) observed = state.data.company_name;
       });
 
