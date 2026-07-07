@@ -9,29 +9,36 @@
   <body>
     <main class="shell">
       <header>
-        <p class="eyebrow">TL-758 · Platform SDK</p>
+        <p class="eyebrow">TL-758 · TL-808 · Platform SDK</p>
         <h1>SDK Studio</h1>
-        <p class="subtitle">Interactive recipes for local API integration</p>
+        <p class="subtitle">Interactive recipes — distilled from audited playground flows</p>
       </header>
 
       <nav class="tabs">
-        <button type="button" data-recipe="lookup" class="tab active">01 · Public lookup</button>
-        <button type="button" data-recipe="login" class="tab">02 · Login + user</button>
-        <button type="button" data-recipe="observe" class="tab">03 · Observe dedupe</button>
+        <button type="button" data-recipe="lookup" class="tab active">01 · Lookup</button>
+        <button type="button" data-recipe="login" class="tab">02 · Login</button>
+        <button type="button" data-recipe="observe" class="tab">03 · Dedupe</button>
+        <button type="button" data-recipe="update-user" class="tab">04 · updateUser</button>
+        <button type="button" data-recipe="observe-company" class="tab">05 · observeCompany</button>
+        <button type="button" data-recipe="update-company" class="tab">06 · updateCompany</button>
       </nav>
 
       <section class="card">
         <h2 id="recipe-title">Recipe 01 — Public lookup</h2>
         <p id="recipe-desc" class="hint">No auth — same JSON as frontend public dropdowns.</p>
+        <p id="recipe-meta" class="meta"></p>
         <div class="actions">
           <button type="button" id="btn-run" class="btn-primary">Run recipe</button>
           <a id="doc-link" href="#" target="_blank" rel="noopener">Open full guide →</a>
         </div>
+        <h3 class="snippet-label">Key snippet</h3>
+        <pre id="recipe-code" class="snippet"></pre>
+        <h3 class="snippet-label">Output</h3>
         <pre id="output" class="output">Click Run recipe…</pre>
       </section>
 
       <section class="card auth-card">
-        <h2>Sign in (recipes 02–03)</h2>
+        <h2>Sign in (recipes 02–06)</h2>
         <form id="login-form">
           <label>
             Email
@@ -47,10 +54,11 @@
       </section>
 
       <footer>
-        Documentation: <code>../toughleaf-platform-sdk/docs/</code> ·
-        <code>docs/ONBOARDING.md</code>
+        Docs: <a href="https://github.com/toughleaf/toughleaf-platform-sdk/tree/main/docs/recipes" target="_blank" rel="noopener"><code>platform-sdk/docs/recipes</code></a> ·
+        <code>docs/ONBOARDING.md</code> ·
+        SDK bundle: <code id="sdk-version">vendored</code>
       </footer>
     </main>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
