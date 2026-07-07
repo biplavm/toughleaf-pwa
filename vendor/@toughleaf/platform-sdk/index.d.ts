@@ -281,7 +281,9 @@ export declare function createClient(options: ToughLeafClientOptions): ToughLeaf
 export declare function decode<T extends TSchema>(schema: T, raw: unknown, label: string): Static<T>;
 export declare function isAuthScopedKey(key: QueryKey): boolean;
 export declare function participantsKey(projectId: string | number): QueryKey;
+export declare function projectFullKey(projectId: string | number): QueryKey;
 export declare function projectKey(projectId: string | number): QueryKey;
+export declare function projectsListKey(params?: Record<string, unknown>): QueryKey;
 export declare function queryKeyMatchesPrefix(key: QueryKey, prefix: QueryKey): boolean;
 export declare function serializeQueryKey(key: QueryKey): string;
 export interface ApiErrorBody {

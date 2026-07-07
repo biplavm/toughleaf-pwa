@@ -5270,8 +5270,18 @@ var INVITES_KEY = ["invites", "list"];
 var COMPANY_PEOPLE_KEY = ["company", "people"];
 var PROJECTS_LIST_KEY = ["projects", "list"];
 var PROJECTS_PREFIX_KEY = ["projects"];
+function projectsListKey(params) {
+  if (!params) {
+    return PROJECTS_LIST_KEY;
+  }
+  const normalized = Object.entries(params).filter(([, value]) => value !== void 0 && value !== null).sort(([a], [b]) => a.localeCompare(b));
+  return normalized.length ? ["projects", "list", Object.fromEntries(normalized)] : PROJECTS_LIST_KEY;
+}
 function projectKey(projectId) {
   return ["projects", projectId];
+}
+function projectFullKey(projectId) {
+  return ["projects", projectId, { full: true }];
 }
 function participantsKey(projectId) {
   return ["projects", projectId, "participants"];
@@ -5311,9 +5321,10 @@ function initialState() {
   };
 }
 function freezeState(state) {
+  const data = state.data === void 0 ? void 0 : Array.isArray(state.data) ? Object.freeze([...state.data]) : Object.freeze({ ...state.data });
   const frozen = Object.freeze({
     ...state,
-    data: state.data !== void 0 ? Object.freeze({ ...state.data }) : void 0
+    data
   });
   return frozen;
 }
@@ -5546,9 +5557,8 @@ function buildLaravelAccountCompanyPutBody(current, patch) {
   return body;
 }
 function pickField(patch, current, key) {
-  const fromPatch = patch[key];
-  if (fromPatch !== void 0 && fromPatch !== null && String(fromPatch).trim() !== "") {
-    return fromPatch;
+  if (Object.prototype.hasOwnProperty.call(patch, key)) {
+    return patch[key];
   }
   const fromCurrent = current[key];
   if (fromCurrent !== void 0 && fromCurrent !== null && String(fromCurrent).trim() !== "") {
@@ -5874,7 +5884,7 @@ var ProjectsResource = class {
   async list(params, options) {
     if (this.cache) {
       return this.cache.fetchQuery(
-        PROJECTS_LIST_KEY,
+        projectsListKey(params),
         (signal) => this.fetchList(params, signal),
         options
       );
@@ -5884,7 +5894,7 @@ var ProjectsResource = class {
   async get(projectId, options) {
     const { full, ...queryOptions } = options ?? {};
     const params = full ? { full: true } : void 0;
-    const key = projectKey(projectId);
+    const key = full ? projectFullKey(projectId) : projectKey(projectId);
     if (this.cache) {
       return this.cache.fetchQuery(
         key,
@@ -6076,14 +6086,17 @@ var ProjectsResource = class {
   invalidateProject(projectId) {
     this.cache?.invalidate(PROJECTS_PREFIX_KEY);
     this.cache?.invalidate(projectKey(projectId));
+    this.cache?.invalidate(projectFullKey(projectId));
   }
   invalidateParticipants(projectId) {
     this.cache?.invalidate(participantsKey(projectId));
     this.cache?.invalidate(projectKey(projectId));
+    this.cache?.invalidate(projectFullKey(projectId));
   }
   invalidateBidPackage(projectId, packageId) {
     this.cache?.invalidate(bidPackageKey(projectId, packageId));
     this.cache?.invalidate(projectKey(projectId));
+    this.cache?.invalidate(projectFullKey(projectId));
     this.cache?.invalidate(PROJECTS_PREFIX_KEY);
   }
 };
@@ -6331,7 +6344,9 @@ export {
   decode,
   isAuthScopedKey,
   participantsKey,
+  projectFullKey,
   projectKey,
+  projectsListKey,
   queryKeyMatchesPrefix,
   serializeQueryKey
 };

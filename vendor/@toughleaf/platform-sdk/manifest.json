@@ -15,15 +15,15 @@
     "toughleaf-platform-sdk.d.ts"
   ],
   "sha256": {
-    "toughleaf-platform-sdk.js": "bf8f5bea3f1bd98d1d612d35fa81056fe3cfdd3aada71ead315a6abcbf0b6af1",
-    "toughleaf-platform-sdk.js.map": "19da20f5c8e638d9a22bf598d24623fcd11220c64b8683eadd66c0f01507120f",
-    "toughleaf-platform-sdk.min.js": "ee11522a1b7978d16dd9172afd24af36c88173400e138f732b2fea28722437f8",
-    "toughleaf-platform-sdk.min.js.map": "43dc41f601760ea0b7a297239984e755978a962ac070a498f94af5809ee00331",
-    "toughleaf-platform-sdk.esm.js": "486e701874349d79dcda0f38574e425e800bdcdc7f0087283c517b22376aeefe",
-    "toughleaf-platform-sdk.esm.js.map": "1c87105ab2b65cdf0b47f912ab81ec40c3570f5919f2b8e92ae0baf9e17e954d",
-    "toughleaf-platform-sdk.d.ts": "5d425d5bef17b4eb5ad270eac508fb7e9c204d5ccbc7a1de9cf5612bef72ea2c"
+    "toughleaf-platform-sdk.js": "905896f4d6a8587460a50e26a78bad2b3e1ce37419bbcf0eec856a49f0f029f9",
+    "toughleaf-platform-sdk.js.map": "8a6f198a01e19cb2088998a35556be571d6f60e8604b5b23f94b3dbb66825165",
+    "toughleaf-platform-sdk.min.js": "c3c980991d6841ff1194981e78068d16a6e6f60b0037832e656e5ffd3e8bc958",
+    "toughleaf-platform-sdk.min.js.map": "73975cf85968563f0d405fe33eee31e74328662e8c241156ace42fa0c4a3cb74",
+    "toughleaf-platform-sdk.esm.js": "cd371999fe58a23d7ee413a898bca77356c04feca3a259eb221090c65da83651",
+    "toughleaf-platform-sdk.esm.js.map": "22a683a914881ab1a05bb87b48e0634a57c6863dd24e47bd75bc911386d36400",
+    "toughleaf-platform-sdk.d.ts": "25bdb50721cd8aa15f6f53e68edfb1dae021b7bdc2b8123a83a2064c1d5dd714"
   },
   "tag": "v0.3.1",
-  "built_at": "2026-07-06T17:06:18.985Z",
-  "git_sha": "ad0cf38"
+  "built_at": "2026-07-07T13:00:40.964Z",
+  "git_sha": "b6c62c4"
 }
