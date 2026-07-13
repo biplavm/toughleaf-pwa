@@ -16,6 +16,7 @@ const dir = path.join(root, 'vendor', '@toughleaf', 'platform-sdk');
 const FILES = [
   ['index.js', 'toughleaf-platform-sdk.esm.js'],
   ['index.js.map', 'toughleaf-platform-sdk.esm.js.map'],
+  ['toughleaf-platform-sdk.esm.js.map', 'toughleaf-platform-sdk.esm.js.map'],
   ['index.d.ts', 'toughleaf-platform-sdk.d.ts'],
 ];
 

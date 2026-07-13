@@ -12,18 +12,23 @@ import { fileURLToPath } from 'node:url';
  * deliverable per tag), verified against the sha256 checksums in manifest.json.
  *
  * Modes (highest precedence first):
- *   SDK_TAG=v0.3.1 npm run vendor:sdk     Download the release for that tag.
+ *   SDK_TAG=vX.Y.Z npm run vendor:sdk     Download the release for that tag.
  *   SDK_DIST=/path npm run vendor:sdk     Copy from a local bundle directory.
  *   npm run vendor:sdk                    Copy from ../toughleaf-platform-sdk/dist/cdn (local dev).
  *
  * Optional:
  *   SDK_REPO=owner/name   Override the source repository (default toughleaf/toughleaf-platform-sdk).
+ *   SDK_API_BASE=url      Override the GitHub API base (useful for GitHub Enterprise and smoke tests).
+ *   SDK_VENDOR_DEST=path  Override the destination (used by isolated integrity tests).
  *   GITHUB_TOKEN=...      Required for private repositories when using SDK_TAG.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const dest = path.join(root, 'vendor', '@toughleaf', 'platform-sdk');
+const dest = process.env.SDK_VENDOR_DEST
+  ? path.resolve(process.env.SDK_VENDOR_DEST)
+  : path.join(root, 'vendor', '@toughleaf', 'platform-sdk');
 const repo = process.env.SDK_REPO ?? 'toughleaf/toughleaf-platform-sdk';
+const apiBase = (process.env.SDK_API_BASE ?? 'https://api.github.com').replace(/\/$/, '');
 const tag = process.env.SDK_TAG;
 const token = process.env.GITHUB_TOKEN;
 
@@ -31,6 +36,8 @@ const token = process.env.GITHUB_TOKEN;
 const FILES = [
   ['toughleaf-platform-sdk.esm.js', 'index.js'],
   ['toughleaf-platform-sdk.esm.js.map', 'index.js.map'],
+  // Keep the original map name because the bundled sourceMappingURL references it.
+  ['toughleaf-platform-sdk.esm.js.map', 'toughleaf-platform-sdk.esm.js.map'],
   ['toughleaf-platform-sdk.d.ts', 'index.d.ts'],
 ];
 
@@ -55,7 +62,7 @@ function ghHeaders(extra = {}) {
 }
 
 async function downloadRelease(releaseTag) {
-  const apiUrl = `https://api.github.com/repos/${repo}/releases/tags/${releaseTag}`;
+  const apiUrl = `${apiBase}/repos/${repo}/releases/tags/${releaseTag}`;
   const res = await fetch(apiUrl, { headers: ghHeaders({ Accept: 'application/vnd.github+json' }) });
   if (!res.ok) {
     fail(

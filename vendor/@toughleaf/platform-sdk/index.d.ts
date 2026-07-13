@@ -1,4 +1,4 @@
-/*! @toughleaf/platform-sdk v0.3.1
+/*! @toughleaf/platform-sdk v0.3.2
  * Browser bundle (self-contained)
  * https://github.com/toughleaf/toughleaf-platform-sdk
  */
@@ -27,6 +27,8 @@ export declare class AccountResource {
 	private fetchNotificationPreferences;
 	private fetchCompanyPeople;
 	private mutateAndInvalidate;
+	private fetchUserFresh;
+	private fetchCompanyFresh;
 }
 export declare class AuthResource {
 	private readonly http;
@@ -88,6 +90,7 @@ export declare class HttpClient {
 export declare class InvitesResource {
 	private readonly http;
 	private readonly cache?;
+	private listRevision;
 	constructor(http: HttpClient, cache?: ResourceCache | undefined);
 	list(options?: QueryOptions): Promise<InviteData[]>;
 	get(inviteId: string | number): Promise<InviteData>;
@@ -97,6 +100,14 @@ export declare class InvitesResource {
 	accept(token: string, payload: AcceptInvitePayload): Promise<unknown>;
 	private fetchList;
 	private mutateAndInvalidate;
+	/**
+	 * Laravel caches GET responses by full URL. Its invalidation timestamp has
+	 * second-level precision, so a mutation performed in the same second as a
+	 * list read can otherwise replay the pre-mutation response. Advancing a
+	 * stable per-client revision creates a fresh server cache key after each
+	 * successful mutation without disabling Laravel caching altogether.
+	 */
+	private invalidateList;
 }
 export declare class LookupResource {
 	private readonly http;
@@ -126,7 +137,8 @@ export declare class ProjectsResource {
 	get(projectId: string | number, options?: {
 		full?: boolean;
 	} & QueryOptions): Promise<ProjectData>;
-	createOrUpdate(payload: ProjectPayload, projectId?: string | number): Promise<ProjectData>;
+	createOrUpdate(payload: CreateProjectPayload): Promise<ProjectData>;
+	createOrUpdate(payload: UpdateProjectPayload, projectId: string | number): Promise<ProjectData>;
 	delete(projectId: string | number): Promise<void>;
 	batch(payload: ProjectBatchPayload): Promise<unknown>;
 	addOrUpdateContact(projectId: string | number, payload: ProjectContactPayload, contactId?: string | number): Promise<unknown>;
@@ -135,7 +147,8 @@ export declare class ProjectsResource {
 	addParticipants(projectId: string | number, payload: ProjectParticipantsPayload): Promise<unknown>;
 	removeParticipants(projectId: string | number, payload: ProjectParticipantsPayload): Promise<unknown>;
 	getBidPackage(projectId: string | number, packageId: string | number, options?: QueryOptions): Promise<BidPackageData>;
-	createOrUpdateBidPackage(projectId: string | number, payload: BidPackagePayload, packageId?: string | number): Promise<BidPackageData>;
+	createOrUpdateBidPackage(projectId: string | number, payload: CreateBidPackagePayload): Promise<BidPackageData>;
+	createOrUpdateBidPackage(projectId: string | number, payload: UpdateBidPackagePayload, packageId: string | number): Promise<BidPackageData>;
 	deleteBidPackage(projectId: string | number, packageId: string | number): Promise<void>;
 	batchBidPackages(projectId: string | number, payload: BidPackageBatchPayload): Promise<unknown>;
 	private fetchList;
@@ -159,6 +172,8 @@ export declare class ResourceCache {
 	private ensureObserveFetch;
 	private runFetch;
 	private setFetching;
+	setQueryData<T>(key: QueryKey, data: T): void;
+	private setInFlight;
 	private scheduleGc;
 	private clearGcTimer;
 }
@@ -286,6 +301,10 @@ export declare function projectKey(projectId: string | number): QueryKey;
 export declare function projectsListKey(params?: Record<string, unknown>): QueryKey;
 export declare function queryKeyMatchesPrefix(key: QueryKey, prefix: QueryKey): boolean;
 export declare function serializeQueryKey(key: QueryKey): string;
+export interface AcceptInvitePayload {
+	/** Required by Laravel only when the invited email does not already belong to a user. */
+	password?: string;
+}
 export interface ApiErrorBody {
 	message: string;
 	details?: Record<string, string | string[]>;
@@ -299,6 +318,21 @@ export interface ApiResponse<T> {
 	data: T;
 	meta?: T extends unknown[] ? PaginationMeta : never;
 }
+export interface BidPackageBasePayload {
+	name?: string;
+	scope?: string | null;
+	description?: string | null;
+	approx_value?: number | null;
+	is_public?: boolean;
+	published?: boolean | null;
+	bid_due_date?: string | null;
+	bid_due_time?: string | null;
+	bid_due_timezone?: string | null;
+	billing_type?: string | null;
+}
+export interface BidPackageBatchPayload {
+	bid_packages: CreateBidPackagePayload[];
+}
 export interface BidPackageData {
 	id: number;
 	name?: string;
@@ -309,6 +343,23 @@ export interface CompanyData {
 	company_name?: string;
 	company_type?: number;
 	[key: string]: unknown;
+}
+export interface CompanyUserRolePayload {
+	role_id: number;
+	company_id?: number;
+}
+export interface CreateBidPackagePayload extends BidPackageBasePayload {
+	name: string;
+}
+export interface CreateInvitePayload {
+	email: string;
+	first_name: string;
+	last_name: string;
+	role_id: number;
+}
+export interface CreateProjectPayload extends ProjectBasePayload {
+	name: string;
+	bid_packages?: CreateBidPackagePayload[];
 }
 export interface EnvFeatures {
 	allow: string[];
@@ -328,7 +379,7 @@ export interface HttpTransport {
 	abortAuthenticated(reason?: string): void;
 }
 export interface InviteData {
-	id: number;
+	id: string | number;
 	email?: string;
 	status?: string;
 	[key: string]: unknown;
@@ -352,6 +403,45 @@ export interface PaginationMeta {
 	last_page: number;
 	per_page: number;
 }
+export interface ProjectBasePayload {
+	name?: string;
+	description?: string | null;
+	city?: string | null;
+	state?: string | null;
+	zip?: string | null;
+	address?: string | null;
+	published?: boolean | null;
+	is_public?: boolean;
+	workflow_id?: string | null;
+	project_type?: "bid_procurement" | "list_of_qualified_firms" | "call_to_make_firms_aware" | null;
+	project_documents_url?: string | null;
+	project_notes?: string | null;
+	bid_due_date?: string | null;
+	bid_due_time?: string | null;
+	bid_due_timezone?: string | null;
+	req_certifications?: string[] | null;
+	req_certification_agencies?: string[] | null;
+	req_certification_types?: string[] | null;
+	req_ethnicities?: string[] | null;
+	req_union?: string | null;
+	req_labor_type?: "open_shop" | "union" | "union_pla" | "prevailing_wage" | null;
+	client_id?: number | null;
+	manager_id?: number | null;
+}
+export interface ProjectBatchPayload {
+	projects: CreateProjectPayload[];
+	/** Required by Laravel for platform administrators creating on behalf of a client. */
+	client_id?: number;
+}
+export interface ProjectContactPayload {
+	name?: string;
+	title?: string | null;
+	email?: string | null;
+	phone?: string | number | null;
+	extension?: string | null;
+	phone_mobile?: string | number | null;
+	primary?: boolean;
+}
 export interface ProjectData {
 	id: number;
 	name?: string;
@@ -362,6 +452,17 @@ export interface ProjectParticipant {
 	id?: number;
 	user_id?: number;
 	[key: string]: unknown;
+}
+export interface ProjectParticipantBidPackagePayload {
+	id: number;
+	invitation_status?: "invited" | "applied";
+	activity_status?: "none" | "attached" | "detached";
+	bid_status?: "none" | "bid_submitted" | "bid_awarded";
+}
+export interface ProjectParticipantMutationPayload {
+	company_id: number;
+	bid_package_ids?: number[];
+	bid_packages?: ProjectParticipantBidPackagePayload[];
 }
 export interface QueryOptions {
 	staleTime?: number;
@@ -405,11 +506,16 @@ export interface Subscription {
 export interface ToughLeafClientOptions extends HttpClientOptions {
 	onLogin?: (session: LoginResponse) => void | Promise<void>;
 }
+export interface UpdateCompanyUserPayload {
+	company_id?: number;
+	email?: string;
+	first_name?: string;
+	last_name?: string;
+	roles?: CompanyUserRolePayload[] | null;
+}
 export interface UpdatePasswordPayload {
 	current_password: string;
-	password: string;
-	password_confirmation: string;
-	[key: string]: unknown;
+	new_password: string;
 }
 export interface UserData {
 	id: number;
@@ -424,23 +530,19 @@ export interface UserLoginInfo {
 	email: string;
 	password: string;
 }
-export type AcceptInvitePayload = Record<string, unknown>;
-export type BidPackageBatchPayload = Record<string, unknown>;
-export type BidPackagePayload = Record<string, unknown>;
-export type CreateInvitePayload = Record<string, unknown>;
+export type BidPackagePayload = CreateBidPackagePayload | UpdateBidPackagePayload;
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD";
 export type NotificationPreferences = Record<string, unknown>;
-export type ProjectBatchPayload = Record<string, unknown>;
-export type ProjectContactPayload = Record<string, unknown>;
-export type ProjectParticipantsPayload = Record<string, unknown>;
-export type ProjectPayload = Record<string, unknown>;
+export type ProjectParticipantsPayload = ProjectParticipantMutationPayload[];
+export type ProjectPayload = CreateProjectPayload | UpdateProjectPayload;
 export type QueryFn<T> = (signal: AbortSignal) => Promise<T>;
 export type QueryKey = readonly unknown[];
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;
 export type ResourceStatus = "idle" | "loading" | "success" | "error";
 export type SessionEvent = "INITIAL_SESSION" | "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED" | "USER_UPDATED";
 export type TokenProvider = () => string | undefined | Promise<string | undefined>;
-export type UpdateCompanyUserPayload = Record<string, unknown>;
+export type UpdateBidPackagePayload = BidPackageBasePayload;
+export type UpdateProjectPayload = ProjectBasePayload;
 export type UpdateUserPayload = Partial<Pick<UserData, "email" | "first_name" | "last_name" | "status">> & Record<string, unknown>;
 type HttpMethod$1 = "GET" | "POST" | "PUT" | "DELETE" | "HEAD";
 type TokenProvider$1 = () => string | undefined | Promise<string | undefined>;
