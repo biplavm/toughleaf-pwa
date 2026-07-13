@@ -1,4 +1,4 @@
-/*! @toughleaf/platform-sdk v0.3.1
+/*! @toughleaf/platform-sdk v0.3.2
  * Browser bundle (self-contained)
  * https://github.com/toughleaf/toughleaf-platform-sdk
  */
@@ -23,20 +23,8 @@ function IsPromise(value) {
 function IsDate(value) {
   return value instanceof Date && globalThis.Number.isFinite(value.getTime());
 }
-function IsMap(value) {
-  return value instanceof globalThis.Map;
-}
-function IsSet(value) {
-  return value instanceof globalThis.Set;
-}
-function IsTypedArray(value) {
-  return globalThis.ArrayBuffer.isView(value);
-}
 function IsUint8Array(value) {
   return value instanceof globalThis.Uint8Array;
-}
-function HasPropertyKey(value, key) {
-  return key in value;
 }
 function IsObject(value) {
   return value !== null && typeof value === "object";
@@ -70,9 +58,6 @@ function IsFunction(value) {
 }
 function IsSymbol(value) {
   return typeof value === "symbol";
-}
-function IsValueType(value) {
-  return IsBigInt(value) || IsBoolean(value) || IsNull(value) || IsNumber(value) || IsString(value) || IsSymbol(value) || IsUndefined(value);
 }
 
 // node_modules/@sinclair/typebox/build/esm/system/policy.mjs
@@ -170,7 +155,7 @@ function Get2(kind) {
 // node_modules/@sinclair/typebox/build/esm/type/guard/value.mjs
 var value_exports = {};
 __export(value_exports, {
-  HasPropertyKey: () => HasPropertyKey2,
+  HasPropertyKey: () => HasPropertyKey,
   IsArray: () => IsArray2,
   IsAsyncIterator: () => IsAsyncIterator2,
   IsBigInt: () => IsBigInt2,
@@ -187,7 +172,7 @@ __export(value_exports, {
   IsUint8Array: () => IsUint8Array2,
   IsUndefined: () => IsUndefined2
 });
-function HasPropertyKey2(value, key) {
+function HasPropertyKey(value, key) {
   return key in value;
 }
 function IsAsyncIterator2(value) {
@@ -1699,7 +1684,7 @@ function IsFunction4(value) {
   return IsKindOf2(value, "Function") && value.type === "Function" && IsOptionalString(value.$id) && IsArray2(value.parameters) && value.parameters.every((schema) => IsSchema2(schema)) && IsSchema2(value.returns);
 }
 function IsImport(value) {
-  return IsKindOf2(value, "Import") && HasPropertyKey2(value, "$defs") && IsObject2(value.$defs) && IsProperties(value.$defs) && HasPropertyKey2(value, "$ref") && IsString2(value.$ref) && value.$ref in value.$defs;
+  return IsKindOf2(value, "Import") && HasPropertyKey(value, "$defs") && IsObject2(value.$defs) && IsProperties(value.$defs) && HasPropertyKey(value, "$ref") && IsString2(value.$ref) && value.$ref in value.$defs;
 }
 function IsInteger3(value) {
   return IsKindOf2(value, "Integer") && value.type === "integer" && IsOptionalString(value.$id) && IsOptionalNumber(value.exclusiveMaximum) && IsOptionalNumber(value.exclusiveMinimum) && IsOptionalNumber(value.maximum) && IsOptionalNumber(value.minimum) && IsOptionalNumber(value.multipleOf);
@@ -3101,175 +3086,6 @@ function Errors(...args) {
   return new ValueErrorIterator(iterator);
 }
 
-// node_modules/@sinclair/typebox/build/esm/value/clone/clone.mjs
-function FromObject4(value) {
-  const Acc = {};
-  for (const key of Object.getOwnPropertyNames(value)) {
-    Acc[key] = Clone2(value[key]);
-  }
-  for (const key of Object.getOwnPropertySymbols(value)) {
-    Acc[key] = Clone2(value[key]);
-  }
-  return Acc;
-}
-function FromArray6(value) {
-  return value.map((element) => Clone2(element));
-}
-function FromTypedArray(value) {
-  return value.slice();
-}
-function FromMap(value) {
-  return new Map(Clone2([...value.entries()]));
-}
-function FromSet(value) {
-  return new Set(Clone2([...value.entries()]));
-}
-function FromDate4(value) {
-  return new Date(value.toISOString());
-}
-function FromValue(value) {
-  return value;
-}
-function Clone2(value) {
-  if (IsArray(value))
-    return FromArray6(value);
-  if (IsDate(value))
-    return FromDate4(value);
-  if (IsTypedArray(value))
-    return FromTypedArray(value);
-  if (IsMap(value))
-    return FromMap(value);
-  if (IsSet(value))
-    return FromSet(value);
-  if (IsObject(value))
-    return FromObject4(value);
-  if (IsValueType(value))
-    return FromValue(value);
-  throw new Error("ValueClone: Unable to clone value");
-}
-
-// node_modules/@sinclair/typebox/build/esm/value/clean/clean.mjs
-function IsCheckable(schema) {
-  return IsKind(schema) && schema[Kind] !== "Unsafe";
-}
-function FromArray7(schema, references, value) {
-  if (!IsArray(value))
-    return value;
-  return value.map((value2) => Visit7(schema.items, references, value2));
-}
-function FromImport3(schema, references, value) {
-  const definitions = globalThis.Object.values(schema.$defs);
-  const target = schema.$defs[schema.$ref];
-  return Visit7(target, [...references, ...definitions], value);
-}
-function FromIntersect6(schema, references, value) {
-  const unevaluatedProperties = schema.unevaluatedProperties;
-  const intersections = schema.allOf.map((schema2) => Visit7(schema2, references, Clone2(value)));
-  const composite = intersections.reduce((acc, value2) => IsObject(value2) ? { ...acc, ...value2 } : value2, {});
-  if (!IsObject(value) || !IsObject(composite) || !IsKind(unevaluatedProperties))
-    return composite;
-  const knownkeys = KeyOfPropertyKeys(schema);
-  for (const key of Object.getOwnPropertyNames(value)) {
-    if (knownkeys.includes(key))
-      continue;
-    if (Check(unevaluatedProperties, references, value[key])) {
-      composite[key] = Visit7(unevaluatedProperties, references, value[key]);
-    }
-  }
-  return composite;
-}
-function FromObject5(schema, references, value) {
-  if (!IsObject(value) || IsArray(value))
-    return value;
-  const additionalProperties = schema.additionalProperties;
-  for (const key of Object.getOwnPropertyNames(value)) {
-    if (HasPropertyKey(schema.properties, key)) {
-      value[key] = Visit7(schema.properties[key], references, value[key]);
-      continue;
-    }
-    if (IsKind(additionalProperties) && Check(additionalProperties, references, value[key])) {
-      value[key] = Visit7(additionalProperties, references, value[key]);
-      continue;
-    }
-    delete value[key];
-  }
-  return value;
-}
-function FromRecord4(schema, references, value) {
-  if (!IsObject(value))
-    return value;
-  const additionalProperties = schema.additionalProperties;
-  const propertyKeys = Object.getOwnPropertyNames(value);
-  const [propertyKey, propertySchema] = Object.entries(schema.patternProperties)[0];
-  const propertyKeyTest = new RegExp(propertyKey);
-  for (const key of propertyKeys) {
-    if (propertyKeyTest.test(key)) {
-      value[key] = Visit7(propertySchema, references, value[key]);
-      continue;
-    }
-    if (IsKind(additionalProperties) && Check(additionalProperties, references, value[key])) {
-      value[key] = Visit7(additionalProperties, references, value[key]);
-      continue;
-    }
-    delete value[key];
-  }
-  return value;
-}
-function FromRef4(schema, references, value) {
-  return Visit7(Deref(schema, references), references, value);
-}
-function FromThis3(schema, references, value) {
-  return Visit7(Deref(schema, references), references, value);
-}
-function FromTuple6(schema, references, value) {
-  if (!IsArray(value))
-    return value;
-  if (IsUndefined(schema.items))
-    return [];
-  const length = Math.min(value.length, schema.items.length);
-  for (let i = 0; i < length; i++) {
-    value[i] = Visit7(schema.items[i], references, value[i]);
-  }
-  return value.length > length ? value.slice(0, length) : value;
-}
-function FromUnion8(schema, references, value) {
-  for (const inner of schema.anyOf) {
-    if (IsCheckable(inner) && Check(inner, references, value)) {
-      return Visit7(inner, references, value);
-    }
-  }
-  return value;
-}
-function Visit7(schema, references, value) {
-  const references_ = IsString(schema.$id) ? Pushref(schema, references) : references;
-  const schema_ = schema;
-  switch (schema_[Kind]) {
-    case "Array":
-      return FromArray7(schema_, references_, value);
-    case "Import":
-      return FromImport3(schema_, references_, value);
-    case "Intersect":
-      return FromIntersect6(schema_, references_, value);
-    case "Object":
-      return FromObject5(schema_, references_, value);
-    case "Record":
-      return FromRecord4(schema_, references_, value);
-    case "Ref":
-      return FromRef4(schema_, references_, value);
-    case "This":
-      return FromThis3(schema_, references_, value);
-    case "Tuple":
-      return FromTuple6(schema_, references_, value);
-    case "Union":
-      return FromUnion8(schema_, references_, value);
-    default:
-      return value;
-  }
-}
-function Clean(...args) {
-  return args.length === 3 ? Visit7(args[0], args[1], args[2]) : Visit7(args[0], [], args[1]);
-}
-
 // src/contract/decode.ts
 var ValidationError = class extends Error {
   constructor(message, issues) {
@@ -3283,7 +3099,7 @@ function decode(schema, raw, label) {
   if (!Check(schema, raw)) {
     throw new ValidationError(`Invalid ${label} response`, [...Errors(schema, raw)]);
   }
-  return Clean(schema, raw);
+  return raw;
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/clone/type.mjs
@@ -3300,13 +3116,13 @@ function Argument(index) {
 function FromComputed2(target, parameters) {
   return Computed("Awaited", [Computed(target, parameters)]);
 }
-function FromRef5($ref) {
+function FromRef4($ref) {
   return Computed("Awaited", [Ref($ref)]);
 }
-function FromIntersect7(types) {
+function FromIntersect6(types) {
   return Intersect(FromRest4(types));
 }
-function FromUnion9(types) {
+function FromUnion8(types) {
   return Union(FromRest4(types));
 }
 function FromPromise4(type) {
@@ -3316,7 +3132,7 @@ function FromRest4(types) {
   return types.map((type) => Awaited(type));
 }
 function Awaited(type, options) {
-  return CreateType(IsComputed(type) ? FromComputed2(type.target, type.parameters) : IsIntersect(type) ? FromIntersect7(type.allOf) : IsUnion(type) ? FromUnion9(type.anyOf) : IsPromise2(type) ? FromPromise4(type.item) : IsRef(type) ? FromRef5(type.$ref) : type, options);
+  return CreateType(IsComputed(type) ? FromComputed2(type.target, type.parameters) : IsIntersect(type) ? FromIntersect6(type.allOf) : IsUnion(type) ? FromUnion8(type.anyOf) : IsPromise2(type) ? FromPromise4(type.item) : IsRef(type) ? FromRef4(type.$ref) : type, options);
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/composite/composite.mjs
@@ -3375,23 +3191,23 @@ function Uint8Array2(options) {
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/const/const.mjs
-function FromArray8(T) {
-  return T.map((L) => FromValue2(L, false));
+function FromArray6(T) {
+  return T.map((L) => FromValue(L, false));
 }
 function FromProperties8(value) {
   const Acc = {};
   for (const K of globalThis.Object.getOwnPropertyNames(value))
-    Acc[K] = Readonly(FromValue2(value[K], false));
+    Acc[K] = Readonly(FromValue(value[K], false));
   return Acc;
 }
 function ConditionalReadonly(T, root) {
   return root === true ? T : Readonly(T);
 }
-function FromValue2(value, root) {
-  return IsAsyncIterator2(value) ? ConditionalReadonly(Any(), root) : IsIterator2(value) ? ConditionalReadonly(Any(), root) : IsArray2(value) ? Readonly(Tuple(FromArray8(value))) : IsUint8Array2(value) ? Uint8Array2() : IsDate2(value) ? Date2() : IsObject2(value) ? ConditionalReadonly(Object2(FromProperties8(value)), root) : IsFunction2(value) ? ConditionalReadonly(Function2([], Unknown()), root) : IsUndefined2(value) ? Undefined() : IsNull2(value) ? Null() : IsSymbol2(value) ? Symbol2() : IsBigInt2(value) ? BigInt2() : IsNumber2(value) ? Literal(value) : IsBoolean2(value) ? Literal(value) : IsString2(value) ? Literal(value) : Object2({});
+function FromValue(value, root) {
+  return IsAsyncIterator2(value) ? ConditionalReadonly(Any(), root) : IsIterator2(value) ? ConditionalReadonly(Any(), root) : IsArray2(value) ? Readonly(Tuple(FromArray6(value))) : IsUint8Array2(value) ? Uint8Array2() : IsDate2(value) ? Date2() : IsObject2(value) ? ConditionalReadonly(Object2(FromProperties8(value)), root) : IsFunction2(value) ? ConditionalReadonly(Function2([], Unknown()), root) : IsUndefined2(value) ? Undefined() : IsNull2(value) ? Null() : IsSymbol2(value) ? Symbol2() : IsBigInt2(value) ? BigInt2() : IsNumber2(value) ? Literal(value) : IsBoolean2(value) ? Literal(value) : IsString2(value) ? Literal(value) : Object2({});
 }
 function Const(T, options) {
-  return CreateType(FromValue2(T, true), options);
+  return CreateType(FromValue(T, true), options);
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/constructor-parameters/constructor-parameters.mjs
@@ -3551,21 +3367,21 @@ function FromFunction4(args, type) {
   type.returns = FromType(args, type.returns);
   return type;
 }
-function FromIntersect8(args, type) {
+function FromIntersect7(args, type) {
   type.allOf = FromTypes(args, type.allOf);
   return type;
 }
-function FromUnion10(args, type) {
+function FromUnion9(args, type) {
   type.anyOf = FromTypes(args, type.anyOf);
   return type;
 }
-function FromTuple7(args, type) {
+function FromTuple6(args, type) {
   if (IsUndefined2(type.items))
     return type;
   type.items = FromTypes(args, type.items);
   return type;
 }
-function FromArray9(args, type) {
+function FromArray7(args, type) {
   type.items = FromType(args, type.items);
   return type;
 }
@@ -3581,11 +3397,11 @@ function FromPromise5(args, type) {
   type.item = FromType(args, type.item);
   return type;
 }
-function FromObject6(args, type) {
+function FromObject4(args, type) {
   const mappedProperties = FromProperties11(args, type.properties);
   return { ...type, ...Object2(mappedProperties) };
 }
-function FromRecord5(args, type) {
+function FromRecord4(args, type) {
   const mappedKey = FromType(args, RecordKey2(type));
   const mappedValue = FromType(args, RecordValue2(type));
   const result = Record(mappedKey, mappedValue);
@@ -3609,7 +3425,7 @@ function FromTypes(args, types) {
   return types.map((type) => FromType(args, type));
 }
 function FromType(args, type) {
-  return IsConstructor(type) ? FromConstructor4(args, type) : IsFunction3(type) ? FromFunction4(args, type) : IsIntersect(type) ? FromIntersect8(args, type) : IsUnion(type) ? FromUnion10(args, type) : IsTuple(type) ? FromTuple7(args, type) : IsArray3(type) ? FromArray9(args, type) : IsAsyncIterator3(type) ? FromAsyncIterator4(args, type) : IsIterator3(type) ? FromIterator4(args, type) : IsPromise2(type) ? FromPromise5(args, type) : IsObject3(type) ? FromObject6(args, type) : IsRecord(type) ? FromRecord5(args, type) : IsArgument(type) ? FromArgument3(args, type) : type;
+  return IsConstructor(type) ? FromConstructor4(args, type) : IsFunction3(type) ? FromFunction4(args, type) : IsIntersect(type) ? FromIntersect7(args, type) : IsUnion(type) ? FromUnion9(args, type) : IsTuple(type) ? FromTuple6(args, type) : IsArray3(type) ? FromArray7(args, type) : IsAsyncIterator3(type) ? FromAsyncIterator4(args, type) : IsIterator3(type) ? FromIterator4(args, type) : IsPromise2(type) ? FromPromise5(args, type) : IsObject3(type) ? FromObject4(args, type) : IsRecord(type) ? FromRecord4(args, type) : IsArgument(type) ? FromArgument3(args, type) : type;
 }
 function Instantiate(type, args) {
   return FromType(args, CloneType(type));
@@ -3721,10 +3537,10 @@ function OmitFromMappedResult(mappedResult, propertyKeys, options) {
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/omit/omit.mjs
-function FromIntersect9(types, propertyKeys) {
+function FromIntersect8(types, propertyKeys) {
   return types.map((type) => OmitResolve(type, propertyKeys));
 }
-function FromUnion11(types, propertyKeys) {
+function FromUnion10(types, propertyKeys) {
   return types.map((type) => OmitResolve(type, propertyKeys));
 }
 function FromProperty3(properties, key) {
@@ -3734,7 +3550,7 @@ function FromProperty3(properties, key) {
 function FromProperties13(properties, propertyKeys) {
   return propertyKeys.reduce((T, K2) => FromProperty3(T, K2), properties);
 }
-function FromObject7(type, propertyKeys, properties) {
+function FromObject5(type, propertyKeys, properties) {
   const options = Discard(type, [TransformKind, "$id", "required", "properties"]);
   const mappedProperties = FromProperties13(properties, propertyKeys);
   return Object2(mappedProperties, options);
@@ -3744,7 +3560,7 @@ function UnionFromPropertyKeys(propertyKeys) {
   return Union(result);
 }
 function OmitResolve(type, propertyKeys) {
-  return IsIntersect(type) ? Intersect(FromIntersect9(type.allOf, propertyKeys)) : IsUnion(type) ? Union(FromUnion11(type.anyOf, propertyKeys)) : IsObject3(type) ? FromObject7(type, propertyKeys, type.properties) : Object2({});
+  return IsIntersect(type) ? Intersect(FromIntersect8(type.allOf, propertyKeys)) : IsUnion(type) ? Union(FromUnion10(type.anyOf, propertyKeys)) : IsObject3(type) ? FromObject5(type, propertyKeys, type.properties) : Object2({});
 }
 function Omit(type, key, options) {
   const typeKey = IsArray2(key) ? UnionFromPropertyKeys(key) : key;
@@ -3787,10 +3603,10 @@ function PickFromMappedResult(mappedResult, propertyKeys, options) {
 }
 
 // node_modules/@sinclair/typebox/build/esm/type/pick/pick.mjs
-function FromIntersect10(types, propertyKeys) {
+function FromIntersect9(types, propertyKeys) {
   return types.map((type) => PickResolve(type, propertyKeys));
 }
-function FromUnion12(types, propertyKeys) {
+function FromUnion11(types, propertyKeys) {
   return types.map((type) => PickResolve(type, propertyKeys));
 }
 function FromProperties15(properties, propertyKeys) {
@@ -3800,7 +3616,7 @@ function FromProperties15(properties, propertyKeys) {
       result[K2] = properties[K2];
   return result;
 }
-function FromObject8(Type2, keys, properties) {
+function FromObject6(Type2, keys, properties) {
   const options = Discard(Type2, [TransformKind, "$id", "required", "properties"]);
   const mappedProperties = FromProperties15(properties, keys);
   return Object2(mappedProperties, options);
@@ -3810,7 +3626,7 @@ function UnionFromPropertyKeys2(propertyKeys) {
   return Union(result);
 }
 function PickResolve(type, propertyKeys) {
-  return IsIntersect(type) ? Intersect(FromIntersect10(type.allOf, propertyKeys)) : IsUnion(type) ? Union(FromUnion12(type.anyOf, propertyKeys)) : IsObject3(type) ? FromObject8(type, propertyKeys, type.properties) : Object2({});
+  return IsIntersect(type) ? Intersect(FromIntersect9(type.allOf, propertyKeys)) : IsUnion(type) ? Union(FromUnion11(type.anyOf, propertyKeys)) : IsObject3(type) ? FromObject6(type, propertyKeys, type.properties) : Object2({});
 }
 function Pick(type, key, options) {
   const typeKey = IsArray2(key) ? UnionFromPropertyKeys2(key) : key;
@@ -3843,7 +3659,7 @@ function PickFromMappedKey(type, mappedKey, options) {
 function FromComputed3(target, parameters) {
   return Computed("Partial", [Computed(target, parameters)]);
 }
-function FromRef6($ref) {
+function FromRef5($ref) {
   return Computed("Partial", [Ref($ref)]);
 }
 function FromProperties16(properties) {
@@ -3852,7 +3668,7 @@ function FromProperties16(properties) {
     partialProperties[K] = Optional(properties[K]);
   return partialProperties;
 }
-function FromObject9(type, properties) {
+function FromObject7(type, properties) {
   const options = Discard(type, [TransformKind, "$id", "required", "properties"]);
   const mappedProperties = FromProperties16(properties);
   return Object2(mappedProperties, options);
@@ -3863,7 +3679,7 @@ function FromRest6(types) {
 function PartialResolve(type) {
   return (
     // Mappable
-    IsComputed(type) ? FromComputed3(type.target, type.parameters) : IsRef(type) ? FromRef6(type.$ref) : IsIntersect(type) ? Intersect(FromRest6(type.allOf)) : IsUnion(type) ? Union(FromRest6(type.anyOf)) : IsObject3(type) ? FromObject9(type, type.properties) : (
+    IsComputed(type) ? FromComputed3(type.target, type.parameters) : IsRef(type) ? FromRef5(type.$ref) : IsIntersect(type) ? Intersect(FromRest6(type.allOf)) : IsUnion(type) ? Union(FromRest6(type.anyOf)) : IsObject3(type) ? FromObject7(type, type.properties) : (
       // Intrinsic
       IsBigInt3(type) ? type : IsBoolean3(type) ? type : IsInteger2(type) ? type : IsLiteral(type) ? type : IsNull3(type) ? type : IsNumber3(type) ? type : IsString3(type) ? type : IsSymbol3(type) ? type : IsUndefined3(type) ? type : (
         // Passthrough
@@ -3899,7 +3715,7 @@ function PartialFromMappedResult(R, options) {
 function FromComputed4(target, parameters) {
   return Computed("Required", [Computed(target, parameters)]);
 }
-function FromRef7($ref) {
+function FromRef6($ref) {
   return Computed("Required", [Ref($ref)]);
 }
 function FromProperties18(properties) {
@@ -3908,7 +3724,7 @@ function FromProperties18(properties) {
     requiredProperties[K] = Discard(properties[K], [OptionalKind]);
   return requiredProperties;
 }
-function FromObject10(type, properties) {
+function FromObject8(type, properties) {
   const options = Discard(type, [TransformKind, "$id", "required", "properties"]);
   const mappedProperties = FromProperties18(properties);
   return Object2(mappedProperties, options);
@@ -3919,7 +3735,7 @@ function FromRest7(types) {
 function RequiredResolve(type) {
   return (
     // Mappable
-    IsComputed(type) ? FromComputed4(type.target, type.parameters) : IsRef(type) ? FromRef7(type.$ref) : IsIntersect(type) ? Intersect(FromRest7(type.allOf)) : IsUnion(type) ? Union(FromRest7(type.anyOf)) : IsObject3(type) ? FromObject10(type, type.properties) : (
+    IsComputed(type) ? FromComputed4(type.target, type.parameters) : IsRef(type) ? FromRef6(type.$ref) : IsIntersect(type) ? Intersect(FromRest7(type.allOf)) : IsUnion(type) ? Union(FromRest7(type.anyOf)) : IsObject3(type) ? FromObject8(type, type.properties) : (
       // Intrinsic
       IsBigInt3(type) ? type : IsBoolean3(type) ? type : IsInteger2(type) ? type : IsLiteral(type) ? type : IsNull3(type) ? type : IsNumber3(type) ? type : IsString3(type) ? type : IsSymbol3(type) ? type : IsUndefined3(type) ? type : (
         // Passthrough
@@ -3985,7 +3801,7 @@ function FromComputed5(moduleProperties, target, parameters) {
   const dereferenced = DereferenceParameters(moduleProperties, parameters);
   return target === "Awaited" ? FromAwaited(dereferenced) : target === "Index" ? FromIndex(dereferenced) : target === "KeyOf" ? FromKeyOf(dereferenced) : target === "Partial" ? FromPartial(dereferenced) : target === "Omit" ? FromOmit(dereferenced) : target === "Pick" ? FromPick(dereferenced) : target === "Required" ? FromRequired(dereferenced) : Never();
 }
-function FromArray10(moduleProperties, type) {
+function FromArray8(moduleProperties, type) {
   return Array2(FromType2(moduleProperties, type));
 }
 function FromAsyncIterator5(moduleProperties, type) {
@@ -3997,18 +3813,18 @@ function FromConstructor5(moduleProperties, parameters, instanceType) {
 function FromFunction5(moduleProperties, parameters, returnType) {
   return Function2(FromTypes2(moduleProperties, parameters), FromType2(moduleProperties, returnType));
 }
-function FromIntersect11(moduleProperties, types) {
+function FromIntersect10(moduleProperties, types) {
   return Intersect(FromTypes2(moduleProperties, types));
 }
 function FromIterator5(moduleProperties, type) {
   return Iterator2(FromType2(moduleProperties, type));
 }
-function FromObject11(moduleProperties, properties) {
+function FromObject9(moduleProperties, properties) {
   return Object2(globalThis.Object.keys(properties).reduce((result, key) => {
     return { ...result, [key]: FromType2(moduleProperties, properties[key]) };
   }, {}));
 }
-function FromRecord6(moduleProperties, type) {
+function FromRecord5(moduleProperties, type) {
   const [value, pattern] = [FromType2(moduleProperties, RecordValue2(type)), RecordPattern(type)];
   const result = CloneType(type);
   result.patternProperties[pattern] = value;
@@ -4017,10 +3833,10 @@ function FromRecord6(moduleProperties, type) {
 function FromTransform(moduleProperties, transform) {
   return IsRef(transform) ? { ...Dereference(moduleProperties, transform.$ref), [TransformKind]: transform[TransformKind] } : transform;
 }
-function FromTuple8(moduleProperties, types) {
+function FromTuple7(moduleProperties, types) {
   return Tuple(FromTypes2(moduleProperties, types));
 }
-function FromUnion13(moduleProperties, types) {
+function FromUnion12(moduleProperties, types) {
   return Union(FromTypes2(moduleProperties, types));
 }
 function FromTypes2(moduleProperties, types) {
@@ -4033,7 +3849,7 @@ function FromType2(moduleProperties, type) {
       // Transform
       IsTransform(type) ? CreateType(FromTransform(moduleProperties, type), type) : (
         // Types
-        IsArray3(type) ? CreateType(FromArray10(moduleProperties, type.items), type) : IsAsyncIterator3(type) ? CreateType(FromAsyncIterator5(moduleProperties, type.items), type) : IsComputed(type) ? CreateType(FromComputed5(moduleProperties, type.target, type.parameters)) : IsConstructor(type) ? CreateType(FromConstructor5(moduleProperties, type.parameters, type.returns), type) : IsFunction3(type) ? CreateType(FromFunction5(moduleProperties, type.parameters, type.returns), type) : IsIntersect(type) ? CreateType(FromIntersect11(moduleProperties, type.allOf), type) : IsIterator3(type) ? CreateType(FromIterator5(moduleProperties, type.items), type) : IsObject3(type) ? CreateType(FromObject11(moduleProperties, type.properties), type) : IsRecord(type) ? CreateType(FromRecord6(moduleProperties, type)) : IsTuple(type) ? CreateType(FromTuple8(moduleProperties, type.items || []), type) : IsUnion(type) ? CreateType(FromUnion13(moduleProperties, type.anyOf), type) : type
+        IsArray3(type) ? CreateType(FromArray8(moduleProperties, type.items), type) : IsAsyncIterator3(type) ? CreateType(FromAsyncIterator5(moduleProperties, type.items), type) : IsComputed(type) ? CreateType(FromComputed5(moduleProperties, type.target, type.parameters)) : IsConstructor(type) ? CreateType(FromConstructor5(moduleProperties, type.parameters, type.returns), type) : IsFunction3(type) ? CreateType(FromFunction5(moduleProperties, type.parameters, type.returns), type) : IsIntersect(type) ? CreateType(FromIntersect10(moduleProperties, type.allOf), type) : IsIterator3(type) ? CreateType(FromIterator5(moduleProperties, type.items), type) : IsObject3(type) ? CreateType(FromObject9(moduleProperties, type.properties), type) : IsRecord(type) ? CreateType(FromRecord5(moduleProperties, type)) : IsTuple(type) ? CreateType(FromTuple7(moduleProperties, type.items || []), type) : IsUnion(type) ? CreateType(FromUnion12(moduleProperties, type.anyOf), type) : type
       )
     )
   );
@@ -5347,10 +5163,7 @@ var ResourceCache = class {
       return entry.inFlight;
     }
     const externalSignal = options.signal;
-    entry.inFlight = this.runFetch(entry, queryFn, externalSignal, false).finally(() => {
-      entry.inFlight = void 0;
-    });
-    return entry.inFlight;
+    return this.setInFlight(entry, this.runFetch(entry, queryFn, externalSignal, false));
   }
   observeQuery(key, queryFn, options = {}) {
     const entry = this.getOrCreateEntry(key, options);
@@ -5393,10 +5206,11 @@ var ResourceCache = class {
           entry.controller.abort();
           entry.controller = void 0;
         }
-        if (entry.observerCount > 0 && entry.queryFn && !entry.inFlight) {
-          entry.inFlight = this.runFetch(entry, entry.queryFn, void 0, true).finally(() => {
-            entry.inFlight = void 0;
-          });
+        if (entry.observerCount > 0 && entry.queryFn) {
+          const previous = entry.inFlight;
+          const queryFn = entry.queryFn;
+          const refetch = (previous ? previous.catch(() => void 0) : Promise.resolve()).then(() => this.runFetch(entry, queryFn, void 0, true));
+          this.setInFlight(entry, refetch);
         }
       }
     }
@@ -5447,10 +5261,9 @@ var ResourceCache = class {
     if (entry.inFlight && entry.controller) {
       return;
     }
-    entry.inFlight = this.runFetch(entry, queryFn, void 0, true).finally(() => {
-      entry.inFlight = void 0;
-    });
-    await entry.inFlight.catch(() => void 0);
+    await this.setInFlight(entry, this.runFetch(entry, queryFn, void 0, true)).catch(
+      () => void 0
+    );
   }
   async runFetch(entry, queryFn, externalSignal, observeDriven) {
     const controller = new AbortController();
@@ -5515,6 +5328,30 @@ var ResourceCache = class {
     });
     entry.state = next;
     entry.subject.next(next);
+  }
+  setQueryData(key, data) {
+    const entry = this.getOrCreateEntry(key, {});
+    void entry.inFlight?.catch(() => void 0);
+    entry.controller?.abort();
+    entry.controller = void 0;
+    entry.inFlight = void 0;
+    const next = freezeState({
+      status: "success",
+      data,
+      isLoading: false,
+      isFetching: false,
+      isStale: false,
+      updatedAt: Date.now()
+    });
+    entry.state = next;
+    entry.subject.next(next);
+  }
+  setInFlight(entry, promise) {
+    const tracked = promise.finally(() => {
+      if (entry.inFlight === tracked) entry.inFlight = void 0;
+    });
+    entry.inFlight = tracked;
+    return tracked;
   }
   scheduleGc(key, entry) {
     this.clearGcTimer(entry);
@@ -5629,7 +5466,7 @@ var AccountResource = class {
       UserDataSchema,
       "user",
       USER_ME_KEY,
-      () => this.getUser()
+      () => this.fetchUserFresh()
     );
   }
   async updatePassword(payload) {
@@ -5666,7 +5503,7 @@ var AccountResource = class {
       CompanyDataSchema,
       "company",
       COMPANY_PREFIX_KEY,
-      () => this.getCompany()
+      () => this.fetchCompanyFresh()
     );
   }
   async updateCompany(payload) {
@@ -5677,7 +5514,7 @@ var AccountResource = class {
       CompanyDataSchema,
       "company",
       COMPANY_PREFIX_KEY,
-      () => this.getCompany()
+      () => this.fetchCompanyFresh()
     );
   }
   async getNotificationPreferences(options) {
@@ -5795,6 +5632,28 @@ var AccountResource = class {
     }
     return data;
   }
+  async fetchUserFresh() {
+    const raw = await this.http.transport.request({
+      method: "GET",
+      path: "/user",
+      params: { _sdk_refresh: Date.now() },
+      authRequired: true
+    });
+    const data = decode(UserDataSchema, raw, "user");
+    this.cache?.setQueryData(USER_ME_KEY, data);
+    return data;
+  }
+  async fetchCompanyFresh() {
+    const raw = await this.http.transport.request({
+      method: "GET",
+      path: "/company",
+      params: { _sdk_refresh: Date.now() },
+      authRequired: true
+    });
+    const data = decode(CompanyDataSchema, raw, "company");
+    this.cache?.setQueryData(COMPANY_ME_KEY, data);
+    return data;
+  }
 };
 
 // src/resources/auth.ts
@@ -5876,6 +5735,50 @@ var BidPackageSchema = Type.Object(
   { id: Type.Number(), name: Type.Optional(Type.String()) },
   { additionalProperties: true }
 );
+var ProjectUpdatePayloadSchema = Type.Object(
+  { name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })) },
+  { additionalProperties: true }
+);
+var ProjectCreatePayloadSchema = Type.Intersect([
+  ProjectUpdatePayloadSchema,
+  Type.Object({ name: Type.String({ minLength: 1, maxLength: 100 }) })
+]);
+var ProjectBatchPayloadSchema = Type.Object({
+  projects: Type.Array(ProjectCreatePayloadSchema, { minItems: 1, maxItems: 200 }),
+  client_id: Type.Optional(Type.Integer())
+});
+var ProjectContactPayloadSchema = Type.Object(
+  {
+    name: Type.Optional(Type.String({ minLength: 1 })),
+    email: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    primary: Type.Optional(Type.Boolean())
+  },
+  { additionalProperties: true }
+);
+var ProjectParticipantsPayloadSchema = Type.Array(
+  Type.Object(
+    {
+      company_id: Type.Integer(),
+      bid_package_ids: Type.Optional(Type.Array(Type.Integer())),
+      bid_packages: Type.Optional(
+        Type.Array(Type.Object({ id: Type.Integer() }, { additionalProperties: true }))
+      )
+    },
+    { additionalProperties: false }
+  ),
+  { minItems: 1 }
+);
+var BidPackageUpdatePayloadSchema = Type.Object(
+  { name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })) },
+  { additionalProperties: true }
+);
+var BidPackageCreatePayloadSchema = Type.Intersect([
+  BidPackageUpdatePayloadSchema,
+  Type.Object({ name: Type.String({ minLength: 1, maxLength: 100 }) })
+]);
+var BidPackageBatchPayloadSchema = Type.Object({
+  bid_packages: Type.Array(BidPackageCreatePayloadSchema, { minItems: 1, maxItems: 200 })
+});
 var ProjectsResource = class {
   constructor(http, cache) {
     this.http = http;
@@ -5906,13 +5809,16 @@ var ProjectsResource = class {
   }
   async createOrUpdate(payload, projectId) {
     if (projectId !== void 0) {
+      decode(ProjectUpdatePayloadSchema, payload, "project-update-payload");
       return this.mutateAndInvalidate(
         { method: "PUT", path: `/projects/${projectId}`, body: payload },
         ProjectDataSchema,
         "project",
-        [PROJECTS_PREFIX_KEY, projectKey(projectId)]
+        [PROJECTS_PREFIX_KEY, projectKey(projectId)],
+        () => this.get(projectId)
       );
     }
+    decode(ProjectCreatePayloadSchema, payload, "project-create-payload");
     return this.mutateAndInvalidate(
       { method: "POST", path: "/projects", body: payload },
       ProjectDataSchema,
@@ -5929,6 +5835,7 @@ var ProjectsResource = class {
     this.invalidateProject(projectId);
   }
   async batch(payload) {
+    decode(ProjectBatchPayloadSchema, payload, "project-batch-payload");
     const result = await this.http.transport.request({
       method: "POST",
       path: "/projects/batch",
@@ -5939,6 +5846,7 @@ var ProjectsResource = class {
     return result;
   }
   async addOrUpdateContact(projectId, payload, contactId) {
+    decode(ProjectContactPayloadSchema, payload, "project-contact-payload");
     const path = contactId !== void 0 ? `/projects/${projectId}/contacts/${contactId}` : `/projects/${projectId}/contacts`;
     const method = contactId !== void 0 ? "PUT" : "POST";
     const result = await this.http.transport.request({
@@ -5970,6 +5878,7 @@ var ProjectsResource = class {
     return (await this.http.get(`/projects/${projectId}/participants`)).data;
   }
   async addParticipants(projectId, payload) {
+    decode(ProjectParticipantsPayloadSchema, payload, "project-participants-add-payload");
     const result = await this.http.transport.request({
       method: "POST",
       path: `/projects/${projectId}/participants/add`,
@@ -5980,6 +5889,7 @@ var ProjectsResource = class {
     return result;
   }
   async removeParticipants(projectId, payload) {
+    decode(ProjectParticipantsPayloadSchema, payload, "project-participants-remove-payload");
     const result = await this.http.transport.request({
       method: "POST",
       path: `/projects/${projectId}/participants/remove`,
@@ -6001,6 +5911,11 @@ var ProjectsResource = class {
     return (await this.http.get(`/projects/${projectId}/bid_packages/${packageId}`)).data;
   }
   async createOrUpdateBidPackage(projectId, payload, packageId) {
+    decode(
+      packageId === void 0 ? BidPackageCreatePayloadSchema : BidPackageUpdatePayloadSchema,
+      payload,
+      packageId === void 0 ? "bid-package-create-payload" : "bid-package-update-payload"
+    );
     const path = packageId !== void 0 ? `/projects/${projectId}/bid_packages/${packageId}` : `/projects/${projectId}/bid_packages`;
     const method = packageId !== void 0 ? "PUT" : "POST";
     const raw = await this.http.transport.request({
@@ -6009,6 +5924,13 @@ var ProjectsResource = class {
       body: payload,
       authRequired: true
     });
+    if (raw === void 0 || raw === null) {
+      if (packageId === void 0) {
+        throw new Error("Laravel returned an empty response while creating a bid package");
+      }
+      this.invalidateBidPackage(projectId, packageId);
+      return this.getBidPackage(projectId, packageId);
+    }
     const data = decode(BidPackageSchema, raw, "bid-package");
     this.invalidateBidPackage(projectId, packageId ?? data.id);
     return data;
@@ -6022,6 +5944,7 @@ var ProjectsResource = class {
     this.invalidateBidPackage(projectId, packageId);
   }
   async batchBidPackages(projectId, payload) {
+    decode(BidPackageBatchPayloadSchema, payload, "bid-package-batch-payload");
     const result = await this.http.transport.request({
       method: "POST",
       path: `/projects/${projectId}/bid-packages/batch`,
@@ -6070,17 +5993,21 @@ var ProjectsResource = class {
     });
     return decode(BidPackageSchema, raw, "bid-package");
   }
-  async mutateAndInvalidate(spec, schema, label, invalidateKeys) {
+  async mutateAndInvalidate(spec, schema, label, invalidateKeys, refetchOnEmpty) {
     const raw = await this.http.transport.request({
       ...spec,
       authRequired: true
     });
-    const data = decode(schema, raw, label);
     if (this.cache) {
       for (const key of invalidateKeys) {
         this.cache.invalidate(key);
       }
     }
+    if (raw === void 0 || raw === null) {
+      if (refetchOnEmpty) return refetchOnEmpty();
+      throw new Error(`Empty ${label} response from Laravel`);
+    }
+    const data = decode(schema, raw, label);
     return data;
   }
   invalidateProject(projectId) {
@@ -6104,17 +6031,24 @@ var ProjectsResource = class {
 // src/resources/invites.ts
 var InviteDataSchema = Type.Object(
   {
-    id: Type.Number(),
+    id: Type.Union([Type.String(), Type.Number()]),
     email: Type.Optional(Type.String()),
     status: Type.Optional(Type.String())
   },
   { additionalProperties: true }
 );
 var InviteListSchema = Type.Array(InviteDataSchema);
+var CreateInvitePayloadSchema = Type.Object({
+  email: Type.String({ minLength: 1 }),
+  first_name: Type.String({ minLength: 1 }),
+  last_name: Type.String({ minLength: 1 }),
+  role_id: Type.Integer()
+});
 var InvitesResource = class {
   constructor(http, cache) {
     this.http = http;
     this.cache = cache;
+    __publicField(this, "listRevision", 0);
   }
   async list(options) {
     if (this.cache) {
@@ -6131,11 +6065,21 @@ var InvitesResource = class {
     return decode(InviteDataSchema, raw, "invite");
   }
   async create(payload) {
+    decode(CreateInvitePayloadSchema, payload, "invite-create-payload");
     return this.mutateAndInvalidate(
       { method: "POST", path: "/invites", body: payload },
       InviteDataSchema,
       "invite",
-      INVITES_KEY
+      INVITES_KEY,
+      async () => {
+        const invites = await this.fetchList(new AbortController().signal);
+        const normalizedEmail = payload.email.toLowerCase();
+        const created = invites.find((invite) => invite.email?.toLowerCase() === normalizedEmail);
+        if (!created) {
+          throw new Error(`Invite for ${payload.email} was not found after Laravel returned 204`);
+        }
+        return created;
+      }
     );
   }
   async resend(inviteId) {
@@ -6143,7 +6087,8 @@ var InvitesResource = class {
       { method: "PUT", path: `/invites/${inviteId}`, body: {} },
       InviteDataSchema,
       "invite",
-      INVITES_KEY
+      INVITES_KEY,
+      () => this.get(inviteId)
     );
   }
   async delete(inviteId) {
@@ -6152,7 +6097,7 @@ var InvitesResource = class {
       path: `/invites/${inviteId}`,
       authRequired: true
     });
-    this.cache?.invalidate(INVITES_KEY);
+    this.invalidateList();
   }
   async accept(token, payload) {
     return this.http.transport.request({
@@ -6166,21 +6111,37 @@ var InvitesResource = class {
     const raw = await this.http.transport.request({
       method: "GET",
       path: "/invites",
+      params: { _tl_sdk_revision: this.listRevision },
       authRequired: true,
       signal
     });
     return decode(InviteListSchema, raw, "invites");
   }
-  async mutateAndInvalidate(spec, schema, label, invalidateKey) {
+  async mutateAndInvalidate(spec, schema, label, invalidateKey, refetchOnEmpty) {
     const raw = await this.http.transport.request({
       ...spec,
       authRequired: true
     });
-    const data = decode(schema, raw, label);
-    if (invalidateKey && this.cache) {
-      this.cache.invalidate(invalidateKey);
+    if (invalidateKey) {
+      this.invalidateList();
     }
+    if (raw === void 0 || raw === null) {
+      if (refetchOnEmpty) return refetchOnEmpty();
+      throw new Error(`Empty ${label} response from Laravel`);
+    }
+    const data = decode(schema, raw, label);
     return data;
+  }
+  /**
+   * Laravel caches GET responses by full URL. Its invalidation timestamp has
+   * second-level precision, so a mutation performed in the same second as a
+   * list read can otherwise replay the pre-mutation response. Advancing a
+   * stable per-client revision creates a fresh server cache key after each
+   * successful mutation without disabling Laravel caching altogether.
+   */
+  invalidateList() {
+    this.listRevision += 1;
+    this.cache?.invalidate(INVITES_KEY);
   }
 };
 
