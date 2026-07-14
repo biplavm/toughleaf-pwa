@@ -14,19 +14,40 @@ async function expectPassed(page) {
   await page.getByRole('button', { name: 'Run journey' }).click();
   await expect.poll(async () => {
     const text = await page.locator('#output').textContent();
-    try { return JSON.parse(text).status === 'running' ? 'running' : 'complete'; } catch { return 'running'; }
+    try {
+      const result = JSON.parse(text);
+      return Array.isArray(result.steps) || result.status === 'failed' ? 'complete' : 'running';
+    } catch {
+      return 'running';
+    }
   }, { timeout: 120_000 }).toBe('complete');
   const text = await page.locator('#output').textContent();
   expect(JSON.parse(text), text).toMatchObject({ status: 'passed' });
 }
 
-test('renders the three versioned journeys and contract inspector', async ({ page }) => {
+test('renders the golden path, regressions, and contract inspector', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Build a real Tough Leaf frontend/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /GC project to outreach/i }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /GC project to outreach/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Account \+ company/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Team invites/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Project delivery/i })).toBeVisible();
-  await expect(page.getByText('Live HTTP contract')).toBeVisible();
+  await expect(page.getByText('HTTP contract inspector')).toBeVisible();
+});
+
+test('runs TL-876 GC project-to-outreach contract against Laravel', async ({ page }) => {
+  test.skip(
+    !realEnv || !process.env.TL_DEMO_WORKFLOW_ID || !process.env.TL_DEMO_PARTICIPANT_COMPANY_NAME,
+    'Set demo credentials, workflow id, and exact participant company name',
+  );
+  await signIn(page);
+  await page.getByLabel('Workflow ULID').fill(process.env.TL_DEMO_WORKFLOW_ID);
+  await page.getByLabel('Firm name').fill(process.env.TL_DEMO_PARTICIPANT_COMPANY_NAME);
+  await expectPassed(page);
+  await expect(page.locator('#output')).toContainText('"http_status": 204');
+  await expect(page.locator('#output')).toContainText('"name": "API zero-residue"');
+  await expect(page.locator('#output')).toContainText('"status": "passed"');
+  await expect(page.locator('#trace-list')).toContainText('204');
 });
 
 test('runs TL-808 account/company against Laravel', async ({ page }) => {

@@ -1,6 +1,6 @@
 {
   "name": "@toughleaf/sdk-studio",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Pure-JS studio for Platform SDK recipes — consumes the versioned browser bundle",

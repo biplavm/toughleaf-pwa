@@ -16,6 +16,7 @@ export default defineConfig({
   server: {
     port: 5175,
     strictPort: true,
+    // Local API target: README "API target" — override via .env VITE_TL_API_BASE or src/studio.config.js.
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8080',

@@ -1,4 +1,4 @@
-/*! @toughleaf/platform-sdk v0.3.2
+/*! @toughleaf/platform-sdk v0.4.0
  * Browser bundle (self-contained)
  * https://github.com/toughleaf/toughleaf-platform-sdk
  */
@@ -35,6 +35,25 @@ export declare class AuthResource {
 	constructor(http: HttpClient);
 	login(info: UserLoginInfo): Promise<LoginResponse>;
 	refresh(): Promise<LoginResponse>;
+}
+export declare class CompaniesResource {
+	private readonly http;
+	private readonly cache?;
+	constructor(http: HttpClient, cache?: ResourceCache | undefined);
+	createSearch(filter: CompanySearchFilter, options?: {
+		fresh?: boolean;
+	}): Promise<CompanySearchData>;
+	search(filter: CompanySearchFilter, options?: {
+		fresh?: boolean;
+	}): Promise<CompanySearchData>;
+	listSearchHistory(params?: CompanySearchHistoryParams, options?: QueryOptions): Promise<CompanySearchData[]>;
+	getSearchResults(searchId: string, options?: QueryOptions): Promise<CompanySearchData>;
+	saveFeedback(searchId: string, companyId: number, feedback: CompanySearchFeedbackPayload): Promise<void>;
+	clearFeedback(searchId: string, companyId: number): Promise<void>;
+	deleteSearch(searchId: string): Promise<void>;
+	get(companyId: string | number, options?: QueryOptions): Promise<CompanyData>;
+	private validateFilter;
+	private normalizeSearch;
 }
 export declare class EnvResource {
 	private readonly http;
@@ -146,6 +165,10 @@ export declare class ProjectsResource {
 	listParticipants(projectId: string | number, options?: QueryOptions): Promise<ProjectParticipant[]>;
 	addParticipants(projectId: string | number, payload: ProjectParticipantsPayload): Promise<unknown>;
 	removeParticipants(projectId: string | number, payload: ProjectParticipantsPayload): Promise<unknown>;
+	listSurveys(projectId: string | number, params?: QueryParams, options?: QueryOptions): Promise<ProjectSurveyData[]>;
+	getSurvey(projectId: string | number, companyId: string | number, options?: QueryOptions): Promise<ProjectSurveyData>;
+	upsertSurvey(projectId: string | number, companyId: string | number, payload: ProjectSurveyPayload): Promise<ProjectSurveyData>;
+	updateSurveyWorkflow(projectId: string | number, companyId: string | number, payload?: ProjectSurveyWorkflowPayload): Promise<ProjectSurveyData>;
 	getBidPackage(projectId: string | number, packageId: string | number, options?: QueryOptions): Promise<BidPackageData>;
 	createOrUpdateBidPackage(projectId: string | number, payload: CreateBidPackagePayload): Promise<BidPackageData>;
 	createOrUpdateBidPackage(projectId: string | number, payload: UpdateBidPackagePayload, packageId: string | number): Promise<BidPackageData>;
@@ -158,6 +181,7 @@ export declare class ProjectsResource {
 	private mutateAndInvalidate;
 	private invalidateProject;
 	private invalidateParticipants;
+	private invalidateSurvey;
 	private invalidateBidPackage;
 }
 export declare class ResourceCache {
@@ -207,6 +231,8 @@ export declare class ToughLeafClient {
 	readonly account: AccountResource;
 	readonly invites: InvitesResource;
 	readonly projects: ProjectsResource;
+	readonly companies: CompaniesResource;
+	readonly workflows: WorkflowsResource;
 	private readonly cache;
 	private accessToken?;
 	private readonly externalGetAccessToken?;
@@ -229,12 +255,22 @@ export declare class ValidationError extends Error {
 	readonly issues: unknown;
 	constructor(message: string, issues: unknown);
 }
+export declare class WorkflowsResource {
+	private readonly http;
+	private readonly cache?;
+	constructor(http: HttpClient, cache?: ResourceCache | undefined);
+	list(options?: QueryOptions): Promise<WorkflowData[]>;
+	get(workflowId: string, options?: QueryOptions): Promise<WorkflowData>;
+}
 /** Auth-scoped cache prefixes cleared on logout */
 export declare const AUTH_CACHE_PREFIXES: QueryKey[];
 export declare const ApiEnvelopeSchema: <T extends TSchema>(dataSchema: T) => import("@sinclair/typebox").TObject<{
 	success: import("@sinclair/typebox").TLiteral<true>;
 	data: T;
 }>;
+export declare const COMPANIES_PREFIX_KEY: readonly [
+	"companies"
+];
 export declare const COMPANY_ME_KEY: readonly [
 	"company",
 	"me"
@@ -290,7 +326,13 @@ export declare const UserDataSchema: import("@sinclair/typebox").TObject<{
 	status: import("@sinclair/typebox").TOptional<import("@sinclair/typebox").TNumber>;
 	company_id: import("@sinclair/typebox").TOptional<import("@sinclair/typebox").TNumber>;
 }>;
+export declare const WORKFLOWS_PREFIX_KEY: readonly [
+	"workflows"
+];
 export declare function bidPackageKey(projectId: string | number, packageId: string | number): QueryKey;
+export declare function companyDetailKey(companyId: string | number): QueryKey;
+export declare function companySearchHistoryKey(params?: Record<string, unknown>): QueryKey;
+export declare function companySearchKey(searchId: string): QueryKey;
 /** Preferred entry point for new consumers (v0.3+). */
 export declare function createClient(options: ToughLeafClientOptions): ToughLeafClient;
 export declare function decode<T extends TSchema>(schema: T, raw: unknown, label: string): Static<T>;
@@ -298,9 +340,12 @@ export declare function isAuthScopedKey(key: QueryKey): boolean;
 export declare function participantsKey(projectId: string | number): QueryKey;
 export declare function projectFullKey(projectId: string | number): QueryKey;
 export declare function projectKey(projectId: string | number): QueryKey;
+export declare function projectSurveyKey(projectId: string | number, companyId: string | number): QueryKey;
+export declare function projectSurveysKey(projectId: string | number, params?: Record<string, unknown>): QueryKey;
 export declare function projectsListKey(params?: Record<string, unknown>): QueryKey;
 export declare function queryKeyMatchesPrefix(key: QueryKey, prefix: QueryKey): boolean;
 export declare function serializeQueryKey(key: QueryKey): string;
+export declare function workflowKey(workflowId: string): QueryKey;
 export interface AcceptInvitePayload {
 	/** Required by Laravel only when the invited email does not already belong to a user. */
 	password?: string;
@@ -343,6 +388,57 @@ export interface CompanyData {
 	company_name?: string;
 	company_type?: number;
 	[key: string]: unknown;
+}
+export interface CompanySearchData {
+	id: string;
+	company_id?: number | null;
+	bid_package_id?: number | null;
+	filter: CompanySearchFilter;
+	results: CompanyData[];
+	results_feedback: SearchResultFeedbackData[];
+	results_count?: number;
+	processed?: boolean;
+	created_at?: string;
+	updated_at?: string;
+	[key: string]: unknown;
+}
+export interface CompanySearchFeedbackPayload {
+	score: number;
+	failure_criteria?: Record<string, unknown> | null;
+}
+export interface CompanySearchFilter {
+	keyword?: string;
+	full_text_search?: string;
+	ethnicities?: string[];
+	city?: string;
+	zip?: string[];
+	radius?: number;
+	longitude?: number;
+	latitude?: number;
+	states?: string[];
+	commodity_code_ids?: number[];
+	business_sizes?: string[];
+	capability_ids?: number[];
+	union_ids?: number[];
+	labor_types?: string[];
+	pays_prevailing_wage?: boolean;
+	pays_davis_bacon_wage?: boolean;
+	project_name?: string;
+	project_client?: string;
+	project_description?: string;
+	flags?: string[];
+	capabilities?: string[];
+	bid_package_mode?: "inclusive" | "exclusive";
+	bid_package_ids?: number[];
+	certification_ids?: number[];
+	certification_agencies?: string[];
+	certification_types?: string[];
+	bid_package_id?: number;
+}
+export interface CompanySearchHistoryParams extends QueryParams {
+	limit?: number;
+	all?: boolean;
+	bid_package_id?: number;
 }
 export interface CompanyUserRolePayload {
 	role_id: number;
@@ -464,6 +560,37 @@ export interface ProjectParticipantMutationPayload {
 	bid_package_ids?: number[];
 	bid_packages?: ProjectParticipantBidPackagePayload[];
 }
+export interface ProjectSurveyAnswerPayload {
+	survey_question_id: string;
+	value?: unknown | null;
+}
+export interface ProjectSurveyData {
+	id: string;
+	project_id: number;
+	company_id: number;
+	invitation_status?: string;
+	workflow_step_id?: string | null;
+	workflow_prompt_id?: string | null;
+	participant?: CompanyData;
+	included_bid_packages?: Array<Record<string, unknown>>;
+	workflow_step?: WorkflowStepData;
+	workflow_prompt?: WorkflowPromptData;
+	metadata?: Array<Record<string, unknown>>;
+	[key: string]: unknown;
+}
+export interface ProjectSurveyIncludedBidPackagePayload {
+	bid_package_id: number;
+	invitation_status?: "none" | "invited" | "applied";
+	activity_status?: "none" | "attached" | "detached";
+	bid_status?: "none" | "bid_submitted" | "bid_awarded";
+}
+export interface ProjectSurveyPayload {
+	assignee_id?: number | null;
+	workflow_step_id?: string;
+	workflow_prompt_id?: string;
+	included_bid_packages?: ProjectSurveyIncludedBidPackagePayload[];
+	survey_answers?: ProjectSurveyAnswerPayload[];
+}
 export interface QueryOptions {
 	staleTime?: number;
 	gcTime?: number;
@@ -486,6 +613,12 @@ export interface ResourceState<T> {
 	readonly isFetching: boolean;
 	readonly isStale: boolean;
 	readonly updatedAt: number;
+}
+export interface SearchResultFeedbackData {
+	matched_company_id?: number;
+	score: number;
+	failure_criteria?: Record<string, unknown> | null;
+	[key: string]: unknown;
 }
 export interface Session {
 	readonly access_token: string;
@@ -530,11 +663,45 @@ export interface UserLoginInfo {
 	email: string;
 	password: string;
 }
+export interface WorkflowData {
+	id: string;
+	name?: string;
+	description?: string | null;
+	steps?: WorkflowStepData[];
+	[key: string]: unknown;
+}
+export interface WorkflowOptionData {
+	id: string;
+	label?: string;
+	type?: string;
+	dispatched_events?: Array<Record<string, unknown>>;
+	next_workflow_step_id?: string | null;
+	next_workflow_prompt_id?: string | null;
+	[key: string]: unknown;
+}
+export interface WorkflowPromptData {
+	id: string;
+	label?: string;
+	action_required?: boolean | number;
+	options?: WorkflowOptionData[];
+	[key: string]: unknown;
+}
+export interface WorkflowStepData {
+	id: string;
+	label?: string;
+	prompts?: WorkflowPromptData[];
+	[key: string]: unknown;
+}
 export type BidPackagePayload = CreateBidPackagePayload | UpdateBidPackagePayload;
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD";
 export type NotificationPreferences = Record<string, unknown>;
 export type ProjectParticipantsPayload = ProjectParticipantMutationPayload[];
 export type ProjectPayload = CreateProjectPayload | UpdateProjectPayload;
+export type ProjectSurveyWorkflowPayload = {
+	workflow_option_id: string;
+} | {
+	workflow_step_id: string;
+};
 export type QueryFn<T> = (signal: AbortSignal) => Promise<T>;
 export type QueryKey = readonly unknown[];
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;

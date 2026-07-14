@@ -13,9 +13,9 @@
     <main class="shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">Platform SDK · integration reference</p>
-          <h1>Build a real Tough Leaf frontend,<br /><span>one verified journey at a time.</span></h1>
-          <p class="subtitle">Laravel contracts, SDK cache behavior, cleanup, and copy-ready code in one place.</p>
+          <p class="eyebrow">Platform SDK · reference implementation</p>
+          <h1>GC project to outreach,<br /><span>through the public SDK.</span></h1>
+          <p class="subtitle">Observable Laravel requests, cache behavior, assertions, and cleanup in one workflow.</p>
         </div>
         <div class="release-card">
           <span>Runtime bundle</span>
@@ -28,7 +28,8 @@
         <aside class="rail">
           <div class="rail-section">
             <p class="section-label">Verified journeys</p>
-            <button type="button" data-recipe="account" class="journey active"><b>01</b><span>Account + company<small>TL-808</small></span></button>
+            <button type="button" data-recipe="golden" class="journey active"><b>00</b><span>GC project to outreach<small>TL-876 / TL-878</small></span></button>
+            <button type="button" data-recipe="account" class="journey"><b>01</b><span>Account + company<small>TL-808</small></span></button>
             <button type="button" data-recipe="invites" class="journey"><b>02</b><span>Team invites<small>TL-809</small></span></button>
             <button type="button" data-recipe="projects" class="journey"><b>03</b><span>Project delivery<small>TL-810</small></span></button>
           </div>
@@ -47,7 +48,9 @@
               <label>Last name<input id="invite-last-name" value="Demo" /></label>
             </div>
             <label>Invite role ID<input id="role-id" type="number" min="1" placeholder="Required for TL-809" /></label>
-            <label>Workflow ULID<input id="workflow-id" placeholder="Optional for non-admin GC" /></label>
+            <label>Workflow ULID<input id="workflow-id" placeholder="Required for TL-876" /></label>
+            <label>Firm name<input id="participant-company-name" placeholder="Exact name from search results" /></label>
+            <label>Search state<input id="search-state" maxlength="2" value="NY" /></label>
             <div class="two-fields">
               <label>Client ID<input id="client-id" type="number" min="1" placeholder="Admin only" /></label>
               <label>Participant company<input id="participant-company-id" type="number" min="1" placeholder="Optional" /></label>
@@ -57,17 +60,17 @@
 
         <section class="canvas">
           <div class="recipe-header">
-            <div><span id="recipe-ticket" class="ticket">TL-808</span><h2 id="recipe-title">Account + company</h2><p id="recipe-desc"></p></div>
+            <div><span id="recipe-ticket" class="ticket">TL-876 / TL-878</span><h2 id="recipe-title">GC project to outreach</h2><p id="recipe-desc"></p></div>
             <button type="button" id="btn-run" class="button primary">Run journey</button>
           </div>
 
           <div class="panels">
             <article class="panel result-panel">
-              <div class="panel-heading"><span>Journey result</span><small>Assertions + cleanup</small></div>
+              <div class="panel-heading"><span>Journey result</span><small>assertions + cleanup</small></div>
               <pre id="output">Sign in, configure the journey, then run it.</pre>
             </article>
             <article class="panel trace-panel">
-              <div class="panel-heading"><span>Live HTTP contract</span><small>Status and latency</small></div>
+              <div class="panel-heading"><span>HTTP contract inspector</span><small>request · status · response · cache</small></div>
               <ol id="trace-list" class="trace-list"></ol>
             </article>
           </div>

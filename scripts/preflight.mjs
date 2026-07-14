@@ -9,11 +9,13 @@ const manifest = JSON.parse(
 );
 
 const apiBase = (process.env.TL_API_BASE_URL ?? 'http://127.0.0.1:8080/api/v1').replace(/\/$/, '');
-const email = process.env.TL_DEMO_EMAIL ?? 'sdk.demo@toughleaf.local';
-const password = process.env.TL_DEMO_PASSWORD ?? 'sdk-demo-password';
+const email = process.env.TL_DEMO_EMAIL;
+const password = process.env.TL_DEMO_PASSWORD;
 const expectedVersion = process.env.TL_EXPECTED_VERSION ?? pkg.version;
-const workflowId = process.env.TL_DEMO_WORKFLOW_ID ?? '01J5DKDEMA0000000000000000';
+const workflowId = process.env.TL_DEMO_WORKFLOW_ID;
 const participantCompanyId = process.env.TL_DEMO_PARTICIPANT_COMPANY_ID;
+const participantCompanyName = process.env.TL_DEMO_PARTICIPANT_COMPANY_NAME;
+const localCandidate = process.env.TL_LOCAL_CANDIDATE === '1';
 const failures = [];
 
 function check(name, condition, detail) {
@@ -25,6 +27,11 @@ function check(name, condition, detail) {
 check('Studio version', pkg.version === expectedVersion, `${pkg.version} (expected ${expectedVersion})`);
 check('SDK manifest version', manifest.version === expectedVersion, `${manifest.version} (expected ${expectedVersion})`);
 check('SDK manifest tag', manifest.tag === `v${manifest.version}`, `${manifest.tag} (expected v${manifest.version})`);
+check(
+  '0.4 release source',
+  localCandidate || (manifest.version === '0.4.0' && manifest.tag === 'v0.4.0'),
+  localCandidate ? 'local candidate explicitly allowed; release gate not certified' : `${manifest.version} / ${manifest.tag}`,
+);
 check(
   'SDK bundle inventory',
   Array.isArray(manifest.files) && manifest.files.length >= 6,
@@ -46,6 +53,13 @@ for (const [localName, assetName] of vendorFiles) {
 }
 
 try {
+  check('Demo credentials', Boolean(email && password), email ? 'email set; password redacted' : 'set TL_DEMO_EMAIL and TL_DEMO_PASSWORD');
+  check('Workflow config', Boolean(workflowId), workflowId ?? 'set TL_DEMO_WORKFLOW_ID');
+  check('Participant id config', Boolean(participantCompanyId), participantCompanyId ?? 'set TL_DEMO_PARTICIPANT_COMPANY_ID');
+  check('Participant name config', Boolean(participantCompanyName), participantCompanyName ?? 'set TL_DEMO_PARTICIPANT_COMPANY_NAME');
+  if (!email || !password || !workflowId || !participantCompanyId || !participantCompanyName) {
+    throw new Error('Required integration configuration is incomplete');
+  }
   const { ToughLeafClient } = await import(
     new URL('vendor/@toughleaf/platform-sdk/index.js', root)
   );
@@ -72,14 +86,16 @@ try {
     `${user.job_title ?? 'missing title'}; invite list authorized`,
   );
 
-  const authHeaders = { Authorization: `Bearer ${client.getAccessToken()}`, Accept: 'application/json' };
-  const workflowResponse = await fetch(`${apiBase}/workflows/${workflowId}`, { headers: authHeaders });
-  check('Demo workflow', workflowResponse.ok, `${workflowId} (HTTP ${workflowResponse.status})`);
-  check(
-    'Participant config',
-    Boolean(participantCompanyId),
-    participantCompanyId ?? 'set TL_DEMO_PARTICIPANT_COMPANY_ID from the seeder output',
+  const [workflow, search] = await Promise.all([
+    client.workflows.get(workflowId, { staleTime: 0 }),
+    client.companies.search({ states: ['NY'] }, { fresh: true }),
+  ]);
+  check('Demo workflow', workflow.id === workflowId, workflow.id);
+  const participant = search.results.find((candidate) =>
+    candidate.id === Number(participantCompanyId) && candidate.company_name === participantCompanyName,
   );
+  check('Participant search', Boolean(participant), `${participantCompanyName} / ${participantCompanyId}`);
+  await client.companies.deleteSearch(search.id);
 } catch (error) {
   check('Laravel integration', false, error instanceof Error ? error.message : String(error));
 }

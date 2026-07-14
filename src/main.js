@@ -1,8 +1,10 @@
 import { createClient } from '@toughleaf/platform-sdk';
 import sdkManifest from '../vendor/@toughleaf/platform-sdk/manifest.json';
 import { RECIPES } from './recipes/index.js';
+import { STUDIO_API_BASE } from './studio.config.js';
 
-const baseUrl = import.meta.env.VITE_TL_API_BASE ?? '/api/v1';
+// Env wins when set; otherwise the explicit constant in studio.config.js.
+const baseUrl = import.meta.env.VITE_TL_API_BASE ?? STUDIO_API_BASE;
 const trace = [];
 const output = /** @type {HTMLElement} */ (document.getElementById('output'));
 const traceList = /** @type {HTMLOListElement} */ (document.getElementById('trace-list'));
@@ -16,7 +18,12 @@ function renderTrace() {
             <span class="trace-path">${item.path}</span>
             <strong>${item.status}</strong>
             <small>${item.duration_ms}ms</small>
-            <details><summary>response</summary><pre>${escapeHtml(item.response)}</pre></details>
+            <details><summary>inspect contract</summary>
+              <p><b>Request</b></p><pre>${escapeHtml(item.request)}</pre>
+              <p><b>Response</b></p><pre>${escapeHtml(item.response)}</pre>
+              <p><b>Invalidates</b> ${escapeHtml(item.invalidates)}</p>
+              <p><b>Refetch</b> ${escapeHtml(item.refetch)}</p>
+            </details>
           </li>`,
         )
         .join('')
@@ -37,13 +44,17 @@ const tracedFetch = async (input, init) => {
   try {
     const response = await globalThis.fetch(input, init);
     const body = await response.clone().text();
+    const path = url.replace(/^https?:\/\/[^/]+/, '');
+    const isLogin = path.endsWith('/auth/login');
     trace.push({
       method: init?.method ?? 'GET',
-      path: url.replace(/^https?:\/\/[^/]+/, ''),
+      path,
       status: response.status,
       ok: response.ok,
       duration_ms: Math.round(performance.now() - startedAt),
-      response: body ? body.slice(0, 1200) : '<empty body>',
+      request: isLogin ? '[credentials redacted]' : formatBody(init?.body),
+      response: isLogin ? '[session response redacted]' : body ? body.slice(0, 1600) : '<empty body>',
+      ...mutationEvidence(init?.method ?? 'GET', path),
     });
     renderTrace();
     return response;
@@ -61,13 +72,33 @@ const tracedFetch = async (input, init) => {
   }
 };
 
+function formatBody(body) {
+  if (!body) return '<no request body>';
+  try {
+    return JSON.stringify(JSON.parse(String(body)), null, 2);
+  } catch {
+    return String(body).slice(0, 1200);
+  }
+}
+
+function mutationEvidence(method, path) {
+  if (method === 'GET') return { invalidates: 'none', refetch: 'read observed' };
+  if (path.includes('/workflow')) return { invalidates: 'survey list/detail, participants, full project', refetch: 'SDK GETs survey after 204' };
+  if (path.includes('/participants/')) return { invalidates: 'participants, project, full project, surveys', refetch: 'journey verifies list' };
+  if (path.includes('/feedback')) return { invalidates: 'company search result', refetch: 'journey verifies search result' };
+  if (path.includes('/bid_packages')) return { invalidates: 'package, project, full project, project lists', refetch: 'entity or explicit read' };
+  if (path.includes('/projects')) return { invalidates: 'project lists and project variants', refetch: 'entity or explicit read' };
+  if (path.includes('/companies/search')) return { invalidates: 'search history/results', refetch: 'explicit search result read' };
+  return { invalidates: 'resource-specific', refetch: 'see journey assertion' };
+}
+
 const client = createClient({ baseUrl, fetchImpl: tracedFetch });
 const sessionStatus = /** @type {HTMLElement} */ (document.getElementById('session-status'));
 const loginForm = /** @type {HTMLFormElement} */ (document.getElementById('login-form'));
 const emailInput = /** @type {HTMLInputElement} */ (document.getElementById('email'));
 const passwordInput = /** @type {HTMLInputElement} */ (document.getElementById('password'));
 const runButton = /** @type {HTMLButtonElement} */ (document.getElementById('btn-run'));
-let active = 'account';
+let active = 'golden';
 
 document.getElementById('sdk-version').textContent =
   `${sdkManifest.name}@${sdkManifest.version} · ${sdkManifest.tag}`;
@@ -92,6 +123,8 @@ function readConfig() {
     participantCompanyId: numberOrUndefined('participant-company-id'),
     clientId: numberOrUndefined('client-id'),
     workflowId: /** @type {HTMLInputElement} */ (document.getElementById('workflow-id')).value.trim() || undefined,
+    participantCompanyName: /** @type {HTMLInputElement} */ (document.getElementById('participant-company-name')).value.trim(),
+    searchState: /** @type {HTMLInputElement} */ (document.getElementById('search-state')).value.trim().toUpperCase() || 'NY',
   };
 }
 
@@ -139,7 +172,7 @@ runButton.addEventListener('click', async () => {
   runButton.textContent = 'Running…';
   output.textContent = 'Executing real SDK calls…';
   try {
-    const result = await RECIPES[active].run({ client, ensureSignedIn, config: readConfig() });
+    const result = await RECIPES[active].run({ client, ensureSignedIn, config: readConfig(), getTrace: () => trace });
     show({ journey: active, sdk: sdkManifest.version, ...result });
   } catch (error) {
     show({
@@ -147,7 +180,7 @@ runButton.addEventListener('click', async () => {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
       steps: error && typeof error === 'object' ? error.journeySteps : undefined,
-      cleanup: 'Check the final HTTP trace and backend state before retrying.',
+      cleanup: error && typeof error === 'object' ? error.cleanup : 'Check the final HTTP trace and backend state before retrying.',
     });
   } finally {
     runButton.disabled = false;

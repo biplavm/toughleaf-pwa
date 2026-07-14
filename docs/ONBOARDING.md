@@ -27,9 +27,10 @@ All modes verify the sha256 checksums in `manifest.json` before vendoring.
 
 ## Recommended reading order
 
-1. [Getting started](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/getting-started.md)
-2. [API envelope](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/concepts/api-envelope.md)
-3. Recipes (copy-paste integration examples):
+1. [Studio walkthrough](walkthrough/README.md) — run the four business stories and learn how to read their evidence.
+2. [Getting started](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/getting-started.md)
+3. [API envelope](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/concepts/api-envelope.md)
+4. Recipes (copy-paste integration examples):
    - [01 Public lookup](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/01-public-lookup.md)
    - [02 Login + getUser](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/02-login-get-user.md)
    - [03 Observe dedupe](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/03-login-observe-dedupe.md)
@@ -38,6 +39,7 @@ All modes verify the sha256 checksums in `manifest.json` before vendoring.
    - [06 updateCompany](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/06-update-company.md) - TL-808
    - [Team invites](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/team-invites.md) - TL-809
    - [Projects lifecycle](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/projects-lifecycle.md) - TL-810
+   - [GC project workflow](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/guides/gc-project-workflow.md) - TL-877/TL-878
 
 ## Product flow index
 
@@ -52,6 +54,7 @@ All modes verify the sha256 checksums in `manifest.json` before vendoring.
 | Projects list | [projects-list.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/guides/projects-list.md) |
 | Projects lifecycle (TL-810) | [projects-lifecycle.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/projects-lifecycle.md) |
 | Bid packages (TL-810) | [projects-lifecycle.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/recipes/projects-lifecycle.md) |
+| GC project to outreach (TL-877/TL-878) | [gc-project-workflow.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/guides/gc-project-workflow.md) |
 | Public reference data | [public-lookup.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/guides/public-lookup.md) |
 | Environment / feature flags | [env-features.md](https://github.com/toughleaf/toughleaf-platform-sdk/blob/main/docs/guides/env-features.md) |
 
@@ -66,3 +69,7 @@ Each guide in the SDK repository follows:
 ## Support
 
 Contact engineering for API changes, authentication, or architecture questions.
+
+## Independent starter
+
+The `starter/` directory is intentionally isolated from Studio source. It vendors a checksummed SDK release and imports only `@toughleaf/platform-sdk`. Mail delivery verification remains an external environment check and is not part of the public frontend bundle.

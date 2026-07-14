@@ -2,7 +2,17 @@
 
 All notable changes to `@toughleaf/sdk-studio` are documented here.
 
-## 0.3.2 - Unreleased
+## 0.4.0 - 2026-07-14
+
+### TL-878 GC project-to-outreach reference workflow
+
+- Added the GC workflow across project, package, firm search, feedback, participant, survey, workflow transition, and API cleanup.
+- Added request bodies, HTTP status, response/error, declared invalidation, observed refetch, assertions, and cleanup to the inspector.
+- Added a standalone Vite + TypeScript starter that imports only the public SDK.
+- Kept Mailpit verification and private seed configuration outside the public Studio build.
+- Vendored the checksum-verified Platform SDK `v0.4.0` GitHub Release.
+
+## 0.3.2 - 2026-07-13
 
 ### TL-809 + TL-810 journey closure
 
