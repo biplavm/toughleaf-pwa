@@ -1,6 +1,6 @@
 {
   "name": "@toughleaf/platform-sdk",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "globalName": "ToughLeafPlatformSDK",
   "esm": "toughleaf-platform-sdk.esm.js",
   "types": "toughleaf-platform-sdk.d.ts",
@@ -15,15 +15,15 @@
     "toughleaf-platform-sdk.d.ts"
   ],
   "sha256": {
-    "toughleaf-platform-sdk.js": "2e151673bc0cc702d1852b09e285c8f44a7cb3cadf97dd686a73a9076d84e6f5",
-    "toughleaf-platform-sdk.js.map": "28d635c7daef939595f832404ff5c60dad1d94aaf29de2149620c5ff7e55f6b1",
-    "toughleaf-platform-sdk.min.js": "53e22f39f289ba94667dddf61a66b505b2c6c496c5578e81e4c031ee04c17ed2",
-    "toughleaf-platform-sdk.min.js.map": "fe984a4d93c1a1d6b4a7b0f640a2a197fa41cbd4817fa5f3c7c3c0ee759448e0",
-    "toughleaf-platform-sdk.esm.js": "bc4569a80c61fd9ca7f6d9eb77029fe1c52bf098826c16f77aa59f9264d86b5f",
-    "toughleaf-platform-sdk.esm.js.map": "dc5d580b250aa7875c29df97d844f07dbab4370402be55d1e3fbfc23be79af19",
-    "toughleaf-platform-sdk.d.ts": "a2203db2e65d4280d052d187f5c098786a723d4950935472afe33b3d4e8c922e"
+    "toughleaf-platform-sdk.js": "4d56c56d87469072a19cb5e8ed5a9a6e32afa4ef2784b4aad5628c401b76842c",
+    "toughleaf-platform-sdk.js.map": "cc52c725c9e1c1e9d26a97e82760e85f58f4f878673e373c84932c04f24a6079",
+    "toughleaf-platform-sdk.min.js": "8b51f02f85ecc8c7dccbe4ce909e13cf9eb07250558b3f5dd09cb1a7ab8d2910",
+    "toughleaf-platform-sdk.min.js.map": "f5d7b9f36394d56ef6b2ad8389007e7c6938a8a78171a870da892bcd31f41f33",
+    "toughleaf-platform-sdk.esm.js": "8d8b7062d27a1cd9e35c9e8189072ac1928e62375828d26d9ffcb8f2909a0d65",
+    "toughleaf-platform-sdk.esm.js.map": "032636d1cd1de9590ebfae400c80afcc092ce952043eb442efc1a7c0079f9aa7",
+    "toughleaf-platform-sdk.d.ts": "73faee36db2af22bbac216f205f2b2a991d058440167edfb45fcd784e29a940e"
   },
-  "tag": "v0.3.2",
-  "built_at": "2026-07-13T15:06:36.000Z",
-  "git_sha": "dccc6bb"
+  "tag": "v0.4.0",
+  "built_at": "2026-07-14T20:25:03.000Z",
+  "git_sha": "ef1f7e6"
 }

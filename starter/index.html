@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tough Leaf SDK starter</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Tough Leaf Platform SDK</p>
+      <h1>GC project-to-outreach starter</h1>
+      <p>This standalone frontend imports only the public SDK and uses no Studio source.</p>
+      <form id="app-form">
+        <label>Email<input id="email" type="email" autocomplete="username" required /></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" required /></label>
+        <label>Workflow ULID<input id="workflow" required /></label>
+        <label>Exact firm name<input id="firm" required /></label>
+        <label>Project name<input id="project" required /></label>
+        <button>Run SDK workflow</button>
+      </form>
+      <pre id="output">Ready.</pre>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

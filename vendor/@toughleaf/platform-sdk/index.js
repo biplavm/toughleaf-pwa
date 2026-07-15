@@ -1,4 +1,4 @@
-/*! @toughleaf/platform-sdk v0.3.2
+/*! @toughleaf/platform-sdk v0.4.0
  * Browser bundle (self-contained)
  * https://github.com/toughleaf/toughleaf-platform-sdk
  */
@@ -5086,12 +5086,16 @@ var INVITES_KEY = ["invites", "list"];
 var COMPANY_PEOPLE_KEY = ["company", "people"];
 var PROJECTS_LIST_KEY = ["projects", "list"];
 var PROJECTS_PREFIX_KEY = ["projects"];
+var COMPANIES_PREFIX_KEY = ["companies"];
+var WORKFLOWS_PREFIX_KEY = ["workflows"];
+function normalizeParams(params) {
+  if (!params) return void 0;
+  const normalized = Object.entries(params).filter(([, value]) => value !== void 0 && value !== null && value !== "").sort(([a], [b]) => a.localeCompare(b));
+  return normalized.length ? Object.fromEntries(normalized) : void 0;
+}
 function projectsListKey(params) {
-  if (!params) {
-    return PROJECTS_LIST_KEY;
-  }
-  const normalized = Object.entries(params).filter(([, value]) => value !== void 0 && value !== null).sort(([a], [b]) => a.localeCompare(b));
-  return normalized.length ? ["projects", "list", Object.fromEntries(normalized)] : PROJECTS_LIST_KEY;
+  const normalized = normalizeParams(params);
+  return normalized ? ["projects", "list", normalized] : PROJECTS_LIST_KEY;
 }
 function projectKey(projectId) {
   return ["projects", projectId];
@@ -5104,6 +5108,26 @@ function participantsKey(projectId) {
 }
 function bidPackageKey(projectId, packageId) {
   return ["projects", projectId, "bid_package", packageId];
+}
+function companySearchHistoryKey(params) {
+  const normalized = normalizeParams(params);
+  return normalized ? ["companies", "search", "history", normalized] : ["companies", "search", "history"];
+}
+function companySearchKey(searchId) {
+  return ["companies", "search", searchId];
+}
+function companyDetailKey(companyId) {
+  return ["companies", "detail", companyId];
+}
+function projectSurveysKey(projectId, params) {
+  const normalized = normalizeParams(params);
+  return normalized ? ["projects", projectId, "surveys", "list", normalized] : ["projects", projectId, "surveys", "list"];
+}
+function projectSurveyKey(projectId, companyId) {
+  return ["projects", projectId, "surveys", companyId];
+}
+function workflowKey(workflowId) {
+  return ["workflows", workflowId];
 }
 function serializeQueryKey(key) {
   return JSON.stringify(key);
@@ -5118,7 +5142,9 @@ var AUTH_CACHE_PREFIXES = [
   ["user"],
   ["company"],
   ["projects"],
-  ["invites"]
+  ["invites"],
+  ["companies"],
+  ["workflows"]
 ];
 function isAuthScopedKey(key) {
   return AUTH_CACHE_PREFIXES.some((prefix) => queryKeyMatchesPrefix(key, prefix));
@@ -5735,6 +5761,57 @@ var BidPackageSchema = Type.Object(
   { id: Type.Number(), name: Type.Optional(Type.String()) },
   { additionalProperties: true }
 );
+var ProjectSurveySchema = Type.Object(
+  {
+    id: Type.String(),
+    project_id: Type.Number(),
+    company_id: Type.Number(),
+    workflow_step_id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    workflow_prompt_id: Type.Optional(Type.Union([Type.String(), Type.Null()]))
+  },
+  { additionalProperties: true }
+);
+var ProjectSurveyListSchema = Type.Array(ProjectSurveySchema);
+var ProjectSurveyPayloadSchema = Type.Object(
+  {
+    assignee_id: Type.Optional(Type.Union([Type.Integer(), Type.Null()])),
+    workflow_step_id: Type.Optional(Type.String()),
+    workflow_prompt_id: Type.Optional(Type.String()),
+    included_bid_packages: Type.Optional(Type.Array(Type.Object(
+      {
+        bid_package_id: Type.Integer(),
+        invitation_status: Type.Optional(Type.Union([
+          Type.Literal("none"),
+          Type.Literal("invited"),
+          Type.Literal("applied")
+        ])),
+        activity_status: Type.Optional(Type.Union([
+          Type.Literal("none"),
+          Type.Literal("attached"),
+          Type.Literal("detached")
+        ])),
+        bid_status: Type.Optional(Type.Union([
+          Type.Literal("none"),
+          Type.Literal("bid_submitted"),
+          Type.Literal("bid_awarded")
+        ]))
+      },
+      { additionalProperties: false }
+    ))),
+    survey_answers: Type.Optional(Type.Array(Type.Object(
+      {
+        survey_question_id: Type.String(),
+        value: Type.Optional(Type.Unknown())
+      },
+      { additionalProperties: false }
+    )))
+  },
+  { additionalProperties: false }
+);
+var ProjectSurveyWorkflowPayloadSchema = Type.Union([
+  Type.Object({ workflow_option_id: Type.String() }, { additionalProperties: false }),
+  Type.Object({ workflow_step_id: Type.String() }, { additionalProperties: false })
+]);
 var ProjectUpdatePayloadSchema = Type.Object(
   { name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })) },
   { additionalProperties: true }
@@ -5899,6 +5976,67 @@ var ProjectsResource = class {
     this.invalidateParticipants(projectId);
     return result;
   }
+  async listSurveys(projectId, params, options) {
+    const query = async (signal) => decode(
+      ProjectSurveyListSchema,
+      await this.http.transport.request({
+        method: "GET",
+        path: `/projects/${projectId}/surveys`,
+        params,
+        authRequired: true,
+        signal
+      }),
+      "project-surveys"
+    );
+    return this.cache ? this.cache.fetchQuery(projectSurveysKey(projectId, params), query, options) : query(new AbortController().signal);
+  }
+  async getSurvey(projectId, companyId, options) {
+    const query = async (signal) => decode(
+      ProjectSurveySchema,
+      await this.http.transport.request({
+        method: "GET",
+        path: `/projects/${projectId}/surveys/${companyId}`,
+        authRequired: true,
+        signal
+      }),
+      "project-survey"
+    );
+    return this.cache ? this.cache.fetchQuery(projectSurveyKey(projectId, companyId), query, options) : query(new AbortController().signal);
+  }
+  async upsertSurvey(projectId, companyId, payload) {
+    decode(ProjectSurveyPayloadSchema, payload, "project-survey-payload");
+    if (payload.workflow_prompt_id !== void 0 && payload.workflow_step_id === void 0) {
+      throw new ValidationError(
+        "Project survey workflow_step_id is required when workflow_prompt_id is provided",
+        [{ path: "/workflow_step_id", message: "required with workflow_prompt_id" }]
+      );
+    }
+    const result = decode(
+      ProjectSurveySchema,
+      await this.http.transport.request({
+        method: "POST",
+        path: `/projects/${projectId}/surveys/${companyId}`,
+        body: payload,
+        authRequired: true
+      }),
+      "project-survey"
+    );
+    this.invalidateSurvey(projectId, companyId);
+    return result;
+  }
+  async updateSurveyWorkflow(projectId, companyId, payload) {
+    if (payload !== void 0) {
+      decode(ProjectSurveyWorkflowPayloadSchema, payload, "project-survey-workflow-payload");
+    }
+    await this.http.transport.request({
+      method: "POST",
+      path: `/projects/${projectId}/surveys/${companyId}/workflow`,
+      body: payload,
+      authRequired: true
+    });
+    this.invalidateSurvey(projectId, companyId);
+    return this.getSurvey(projectId, companyId);
+  }
   async getBidPackage(projectId, packageId, options) {
     const key = bidPackageKey(projectId, packageId);
     if (this.cache) {
@@ -6018,6 +6156,13 @@ var ProjectsResource = class {
   invalidateParticipants(projectId) {
     this.cache?.invalidate(participantsKey(projectId));
     this.cache?.invalidate(projectKey(projectId));
+    this.cache?.invalidate(projectFullKey(projectId));
+    this.cache?.invalidate(["projects", projectId, "surveys"]);
+  }
+  invalidateSurvey(projectId, companyId) {
+    this.cache?.invalidate(["projects", projectId, "surveys"]);
+    this.cache?.invalidate(projectSurveyKey(projectId, companyId));
+    this.cache?.invalidate(participantsKey(projectId));
     this.cache?.invalidate(projectFullKey(projectId));
   }
   invalidateBidPackage(projectId, packageId) {
@@ -6145,6 +6290,261 @@ var InvitesResource = class {
   }
 };
 
+// src/resources/companies.ts
+var StringList = Type.Array(Type.String());
+var IntegerList = Type.Array(Type.Integer());
+var CompanySearchFilterSchema = Type.Object(
+  {
+    keyword: Type.Optional(Type.String()),
+    full_text_search: Type.Optional(Type.String()),
+    ethnicities: Type.Optional(StringList),
+    city: Type.Optional(Type.String()),
+    zip: Type.Optional(StringList),
+    radius: Type.Optional(Type.Integer()),
+    longitude: Type.Optional(Type.Number()),
+    latitude: Type.Optional(Type.Number()),
+    states: Type.Optional(StringList),
+    commodity_code_ids: Type.Optional(IntegerList),
+    business_sizes: Type.Optional(StringList),
+    capability_ids: Type.Optional(IntegerList),
+    union_ids: Type.Optional(IntegerList),
+    labor_types: Type.Optional(StringList),
+    pays_prevailing_wage: Type.Optional(Type.Boolean()),
+    pays_davis_bacon_wage: Type.Optional(Type.Boolean()),
+    project_name: Type.Optional(Type.String()),
+    project_client: Type.Optional(Type.String()),
+    project_description: Type.Optional(Type.String()),
+    flags: Type.Optional(StringList),
+    capabilities: Type.Optional(StringList),
+    bid_package_mode: Type.Optional(Type.Union([Type.Literal("inclusive"), Type.Literal("exclusive")])),
+    bid_package_ids: Type.Optional(IntegerList),
+    certification_ids: Type.Optional(IntegerList),
+    certification_agencies: Type.Optional(StringList),
+    certification_types: Type.Optional(StringList),
+    bid_package_id: Type.Optional(Type.Integer())
+  },
+  { additionalProperties: false }
+);
+var CompanySchema = Type.Object(
+  { id: Type.Number(), company_name: Type.Optional(Type.String()) },
+  { additionalProperties: true }
+);
+var SearchSchema = Type.Object(
+  {
+    id: Type.String(),
+    filter: Type.Union([
+      Type.Object({}, { additionalProperties: true }),
+      Type.Array(Type.Never(), { maxItems: 0 })
+    ]),
+    results: Type.Optional(Type.Array(CompanySchema)),
+    results_feedback: Type.Optional(Type.Array(Type.Object(
+      {
+        matched_company_id: Type.Optional(Type.Number()),
+        score: Type.Number(),
+        failure_criteria: Type.Optional(Type.Union([
+          Type.Record(Type.String(), Type.Unknown()),
+          Type.Null()
+        ]))
+      },
+      { additionalProperties: true }
+    )))
+  },
+  { additionalProperties: true }
+);
+var SearchListSchema = Type.Array(SearchSchema);
+var FeedbackSchema = Type.Object(
+  {
+    score: Type.Integer({ minimum: -1, maximum: 5 }),
+    failure_criteria: Type.Optional(
+      Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])
+    )
+  },
+  { additionalProperties: false }
+);
+var CompaniesResource = class {
+  constructor(http, cache) {
+    this.http = http;
+    this.cache = cache;
+  }
+  async createSearch(filter, options = {}) {
+    this.validateFilter(filter);
+    const raw = await this.http.transport.request({
+      method: "POST",
+      path: "/companies/search",
+      params: options.fresh ? { fresh: true } : void 0,
+      body: filter,
+      authRequired: true
+    });
+    const data = this.normalizeSearch(decode(SearchSchema, raw, "company-search"));
+    this.cache?.invalidate(companySearchHistoryKey());
+    return data;
+  }
+  async search(filter, options = {}) {
+    const created = await this.createSearch(filter, options);
+    return this.getSearchResults(created.id);
+  }
+  async listSearchHistory(params, options) {
+    const query = async (signal) => {
+      const raw = await this.http.transport.request({
+        method: "GET",
+        path: "/companies/search",
+        params,
+        authRequired: true,
+        signal
+      });
+      return decode(SearchListSchema, raw, "company-search-history").map((item) => this.normalizeSearch(item));
+    };
+    return this.cache ? this.cache.fetchQuery(companySearchHistoryKey(params), query, options) : query(new AbortController().signal);
+  }
+  async getSearchResults(searchId, options) {
+    const query = async (signal) => {
+      const raw = await this.http.transport.request({
+        method: "GET",
+        path: `/companies/search/${searchId}`,
+        authRequired: true,
+        signal
+      });
+      return this.normalizeSearch(decode(SearchSchema, raw, "company-search-results"));
+    };
+    return this.cache ? this.cache.fetchQuery(companySearchKey(searchId), query, options) : query(new AbortController().signal);
+  }
+  async saveFeedback(searchId, companyId, feedback) {
+    decode(FeedbackSchema, feedback, "company-search-feedback-payload");
+    await this.http.transport.request({
+      method: "POST",
+      path: `/companies/search/${searchId}/feedback`,
+      body: { ...feedback, matched_company_id: companyId },
+      authRequired: true
+    });
+    this.cache?.invalidate(companySearchKey(searchId));
+  }
+  async clearFeedback(searchId, companyId) {
+    await this.saveFeedback(searchId, companyId, { score: 0 });
+  }
+  async deleteSearch(searchId) {
+    await this.http.transport.request({
+      method: "DELETE",
+      path: `/companies/search/${searchId}`,
+      authRequired: true
+    });
+    this.cache?.invalidate(COMPANIES_PREFIX_KEY);
+  }
+  async get(companyId, options) {
+    const query = async (signal) => {
+      const raw = await this.http.transport.request({
+        method: "GET",
+        path: `/companies/${companyId}`,
+        authRequired: true,
+        signal
+      });
+      return decode(CompanySchema, raw, "company-detail");
+    };
+    return this.cache ? this.cache.fetchQuery(companyDetailKey(companyId), query, options) : query(new AbortController().signal);
+  }
+  validateFilter(filter) {
+    decode(CompanySearchFilterSchema, filter, "company-search-filter");
+    if (filter.longitude === void 0 !== (filter.latitude === void 0)) {
+      throw new ValidationError(
+        "Company search longitude and latitude must be provided together",
+        [{ path: "/longitude|latitude", message: "paired coordinates required" }]
+      );
+    }
+    if (filter.bid_package_id !== void 0 && (filter.bid_package_mode !== void 0 || filter.bid_package_ids !== void 0 || filter.certification_ids !== void 0)) {
+      throw new ValidationError(
+        "Company search bid_package_id cannot be combined with bid_package_mode, bid_package_ids, or certification_ids",
+        [{ path: "/bid_package_id", message: "mutually exclusive Laravel filters" }]
+      );
+    }
+    if (filter.certification_ids !== void 0 && (filter.certification_agencies !== void 0 || filter.certification_types !== void 0)) {
+      throw new ValidationError(
+        "Company search certification_ids cannot be combined with certification_agencies or certification_types",
+        [{ path: "/certification_ids", message: "mutually exclusive Laravel filters" }]
+      );
+    }
+  }
+  normalizeSearch(raw) {
+    const data = raw;
+    return {
+      ...data,
+      filter: Array.isArray(data.filter) ? {} : data.filter,
+      results: data.results ?? [],
+      results_feedback: data.results_feedback ?? []
+    };
+  }
+};
+
+// src/resources/workflows.ts
+var WorkflowOptionSchema = Type.Object(
+  {
+    id: Type.String(),
+    label: Type.Optional(Type.String()),
+    type: Type.Optional(Type.String()),
+    dispatched_events: Type.Optional(Type.Array(Type.Object({}, { additionalProperties: true }))),
+    next_workflow_step_id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    next_workflow_prompt_id: Type.Optional(Type.Union([Type.String(), Type.Null()]))
+  },
+  { additionalProperties: true }
+);
+var WorkflowPromptSchema = Type.Object(
+  {
+    id: Type.String(),
+    label: Type.Optional(Type.String()),
+    action_required: Type.Optional(Type.Union([Type.Boolean(), Type.Number()])),
+    options: Type.Optional(Type.Array(WorkflowOptionSchema))
+  },
+  { additionalProperties: true }
+);
+var WorkflowStepSchema = Type.Object(
+  {
+    id: Type.String(),
+    label: Type.Optional(Type.String()),
+    prompts: Type.Optional(Type.Array(WorkflowPromptSchema))
+  },
+  { additionalProperties: true }
+);
+var WorkflowSchema = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.Optional(Type.String()),
+    description: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    steps: Type.Optional(Type.Array(WorkflowStepSchema))
+  },
+  { additionalProperties: true }
+);
+var WorkflowListSchema = Type.Array(WorkflowSchema);
+var WorkflowsResource = class {
+  constructor(http, cache) {
+    this.http = http;
+    this.cache = cache;
+  }
+  async list(options) {
+    const query = async (signal) => decode(
+      WorkflowListSchema,
+      await this.http.transport.request({
+        method: "GET",
+        path: "/workflows",
+        authRequired: true,
+        signal
+      }),
+      "workflows"
+    );
+    return this.cache ? this.cache.fetchQuery(WORKFLOWS_PREFIX_KEY, query, options) : query(new AbortController().signal);
+  }
+  async get(workflowId, options) {
+    const query = async (signal) => decode(
+      WorkflowSchema,
+      await this.http.transport.request({
+        method: "GET",
+        path: `/workflows/${workflowId}`,
+        authRequired: true,
+        signal
+      }),
+      "workflow"
+    );
+    return this.cache ? this.cache.fetchQuery(workflowKey(workflowId), query, options) : query(new AbortController().signal);
+  }
+};
+
 // src/session/SessionStore.ts
 function freezeSession(session) {
   return Object.freeze({ ...session });
@@ -6184,6 +6584,8 @@ var ToughLeafClient = class _ToughLeafClient {
     __publicField(this, "account");
     __publicField(this, "invites");
     __publicField(this, "projects");
+    __publicField(this, "companies");
+    __publicField(this, "workflows");
     __publicField(this, "cache");
     __publicField(this, "accessToken");
     __publicField(this, "externalGetAccessToken");
@@ -6207,12 +6609,18 @@ var ToughLeafClient = class _ToughLeafClient {
     this.account = new AccountResource(this.http, this.cache);
     this.invites = new InvitesResource(this.http, this.cache);
     this.projects = new ProjectsResource(this.http, this.cache);
+    this.companies = new CompaniesResource(this.http, this.cache);
+    this.workflows = new WorkflowsResource(this.http, this.cache);
   }
   /** @deprecated Use createClient() — alias kept for v0.2 consumers */
   static create(options) {
     return new _ToughLeafClient(options);
   }
   setAccessToken(token) {
+    if (this.accessToken !== void 0 && this.accessToken !== token) {
+      this.cache.onAuthChange(false);
+      this.http.abortAuthenticated("authentication scope changed");
+    }
     this.accessToken = token;
   }
   getAccessToken() {
@@ -6265,8 +6673,6 @@ var ToughLeafClient = class _ToughLeafClient {
   clearSession(event) {
     this.setAccessToken(void 0);
     this.session.setSession(null, event);
-    this.cache.onAuthChange(false);
-    this.http.abortAuthenticated("session ended");
   }
 };
 function createClient(options) {
@@ -6277,9 +6683,11 @@ export {
   AccountResource,
   ApiEnvelopeSchema,
   AuthResource,
+  COMPANIES_PREFIX_KEY,
   COMPANY_ME_KEY,
   COMPANY_PEOPLE_KEY,
   COMPANY_PREFIX_KEY,
+  CompaniesResource,
   CompanyDataSchema,
   EnvResource,
   FetchTransport,
@@ -6300,15 +6708,23 @@ export {
   USER_ME_KEY,
   UserDataSchema,
   ValidationError,
+  WORKFLOWS_PREFIX_KEY,
+  WorkflowsResource,
   bidPackageKey,
+  companyDetailKey,
+  companySearchHistoryKey,
+  companySearchKey,
   createClient,
   decode,
   isAuthScopedKey,
   participantsKey,
   projectFullKey,
   projectKey,
+  projectSurveyKey,
+  projectSurveysKey,
   projectsListKey,
   queryKeyMatchesPrefix,
-  serializeQueryKey
+  serializeQueryKey,
+  workflowKey
 };
 //# sourceMappingURL=toughleaf-platform-sdk.esm.js.map

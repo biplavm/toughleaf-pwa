@@ -25,12 +25,20 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Verify standalone starter
+        shell: bash
+        run: |
+          cd starter
+          npm ci
+          SDK_VENDOR_DIR=../vendor/@toughleaf/platform-sdk npm run vendor:sdk
+          npm run typecheck
+          npm run build
       - name: Install Chromium for shell E2E
         if: matrix.node == 20
         run: npx playwright install --with-deps chromium
       - name: Run Studio shell E2E
         if: matrix.node == 20
-        run: npm run test:e2e -- --grep "renders the three versioned journeys"
+        run: npm run test:e2e -- --grep "renders the golden path"
       - name: Verify release tag matches Studio version
         if: startsWith(github.ref, 'refs/tags/')
         run: npm run release:check -- "${{ github.ref_name }}"
