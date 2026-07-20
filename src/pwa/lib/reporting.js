@@ -269,3 +269,100 @@ export function auditReady(project, participants, surveys) {
     complete: checklist.every((c) => c.passed),
   };
 }
+
+export function crossProjectMetrics(projectResults) {
+  if (!Array.isArray(projectResults)) projectResults = [];
+
+  const firmIds = new Set();
+  let totalAwarded = 0;
+  let diverseAwarded = 0;
+  let hasAwardData = false;
+  const outreachStatusCounts = {};
+  const goalsAtRisk = [];
+  const deadlineBuckets = { days7: [], days14: [], days30: [] };
+  let activeProjects = 0;
+
+  const now = new Date();
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  for (const result of projectResults) {
+    if (!result) continue;
+    const { project, participants, surveys } = result;
+    if (!project) continue;
+
+    const status = project.status;
+    if (status && status !== 'not_started' && status !== 'closed_won' && status !== 'closed_lost') {
+      activeProjects++;
+    }
+
+    if (Array.isArray(participants)) {
+      for (const p of participants) {
+        const id = p?.company_id ?? p?.company?.id ?? p?.id;
+        if (id != null) firmIds.add(id);
+      }
+    }
+
+    const bidPackages = Array.isArray(project.bid_packages) ? project.bid_packages : [];
+    for (const pkg of bidPackages) {
+      const os = pkg?.outreach_status;
+      if (os) outreachStatusCounts[os] = (outreachStatusCounts[os] ?? 0) + 1;
+
+      const awarded = pkg?.awarded_to;
+      if (awarded && typeof awarded === 'object') {
+        const amount = awardedDollars(pkg) ?? packageValue(pkg);
+        if (amount != null) {
+          hasAwardData = true;
+          totalAwarded += amount;
+
+          if (Array.isArray(surveys)) {
+            const survey = surveys.find((s) => s?.company_id === awarded.company_id);
+            const company = survey?.participant ?? awarded;
+            const goal = goalVsActual(project, surveys);
+            if (goal.goalType && isDiverseFirm(company, goal.goalType)) {
+              diverseAwarded += amount;
+            }
+          }
+        }
+      }
+    }
+
+    if (project.bid_due_date) {
+      const due = new Date(project.bid_due_date);
+      const diff = (due - now) / dayMs;
+      if (diff >= 0 && diff <= 7) deadlineBuckets.days7.push(project);
+      if (diff >= 0 && diff <= 14) deadlineBuckets.days14.push(project);
+      if (diff >= 0 && diff <= 30) deadlineBuckets.days30.push(project);
+    }
+
+    if (Array.isArray(surveys) && project.req_participation) {
+      const goal = goalVsActual(project, surveys);
+      if (goal.parseable && goal.actualPercent != null && goal.goalPercent != null) {
+        if (goal.actualPercent < goal.goalPercent) {
+          goalsAtRisk.push({
+            project,
+            goalPercent: goal.goalPercent,
+            actualPercent: goal.actualPercent,
+            goalType: goal.goalType,
+          });
+        }
+      }
+    }
+  }
+
+  const diversePercent = hasAwardData && totalAwarded > 0
+    ? Math.round((diverseAwarded / totalAwarded) * 1000) / 10
+    : null;
+
+  return {
+    activeProjects,
+    totalFirms: firmIds.size,
+    totalAwarded,
+    diverseAwarded,
+    diversePercent,
+    hasAwardData,
+    outreachStatusCounts,
+    goalsAtRisk,
+    deadlineBuckets,
+    projectsLoaded: projectResults.filter((r) => r?.project).length,
+  };
+}

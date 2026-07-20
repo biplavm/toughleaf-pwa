@@ -13,6 +13,7 @@
   import InvitesPage from './pages/InvitesPage.svelte';
   import ProfilePage from './pages/ProfilePage.svelte';
   import SettingsPage from './pages/SettingsPage.svelte';
+  import ReportsPage from './pages/ReportsPage.svelte';
 
   let route;
   let session = null;
@@ -58,6 +59,7 @@
       '/invites': 'Team Invites',
       '/profile': 'Profile',
       '/settings': 'Settings',
+      '/reports': 'Reports',
     };
     return titles[r] ?? 'Dashboard';
   }
@@ -104,6 +106,8 @@
             <ProfilePage />
           {:else if route === '/settings'}
             <SettingsPage />
+          {:else if route === '/reports'}
+            <ReportsPage />
           {:else}
             <DashboardPage />
           {/if}

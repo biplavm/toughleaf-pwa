@@ -239,7 +239,7 @@
     </div>
 
     {#if projectTab === 'report'}
-      <ProjectReport {project} {participants} {surveys} loading={false} />
+      <ProjectReport project={projectData} {participants} {surveys} loading={false} />
     {:else}
     <div class="detail-panel">
       <div class="detail-panel-header">

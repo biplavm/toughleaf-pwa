@@ -107,12 +107,13 @@
         <div class="funnel">
           {#each funnelOrder as stage, i}
             {@const count = funnel.counts[stage]}
-            {@const prevCount = i > 0 ? funnel.counts[funnelOrder[i - 1]] : 0}
-            {@const width = funnel.counts.invited > 0 ? Math.max(8, Math.round((count / funnel.counts.invited) * 100)) : 0}
+            {@const width = funnel.counts.invited > 0 ? Math.round((count / funnel.counts.invited) * 100) : 0}
             <div class="funnel-row">
-              <div class="funnel-bar" style="width:{width}%">
-                <span class="funnel-stage">{funnelLabels[stage]}</span>
-                <span class="funnel-count">{count}</span>
+              <span class="funnel-label">{funnelLabels[stage]}</span>
+              <div class="funnel-track">
+                <div class="funnel-bar funnel-stage-{i}" style="width:{width}%">
+                  <span class="funnel-count">{count}</span>
+                </div>
               </div>
               {#if i > 0 && funnel.rates[stage] != null}
                 <span class="funnel-rate">{funnel.rates[stage]}%</span>
@@ -244,21 +245,42 @@
   .funnel-row {
     display: flex;
     align-items: center;
-    gap: var(--tl-spacing-xs);
+    gap: var(--tl-spacing-sm);
+  }
+  .funnel-label {
+    flex: 0 0 90px;
+    font-size: var(--tl-font-size-sm);
+    color: var(--tl-color-neutral-600);
+    text-align: right;
+  }
+  .funnel-track {
+    flex: 1;
+    height: 28px;
+    background: var(--tl-color-neutral-50);
+    border-radius: var(--tl-border-radius-md);
+    overflow: hidden;
   }
   .funnel-bar {
+    height: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
-    background: var(--tl-color-brand, #2491eb);
+    justify-content: flex-end;
+    padding: 0 var(--tl-spacing-sm);
     color: #fff;
     border-radius: var(--tl-border-radius-md);
     font-size: var(--tl-font-size-sm);
-    min-width: 80px;
+    font-weight: var(--tl-font-weight-semibold);
+    min-width: 32px;
     transition: width 0.3s ease;
   }
+  .funnel-stage-0 { background: #2491eb; }
+  .funnel-stage-1 { background: #3b9bf0; }
+  .funnel-stage-2 { background: #62b0f3; }
+  .funnel-stage-3 { background: #89c5f6; }
+  .funnel-stage-4 { background: #b0daf9; }
+  .funnel-count { white-space: nowrap; }
   .funnel-rate {
+    flex: 0 0 auto;
     font-size: var(--tl-font-size-xs);
     color: var(--tl-color-neutral-500);
     white-space: nowrap;

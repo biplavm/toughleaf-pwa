@@ -4,6 +4,7 @@ import {
   participationBreakdown,
   goalVsActual,
   auditReady,
+  crossProjectMetrics,
 } from './reporting.js';
 
 function makeCompany(id, name, certs = []) {
@@ -279,5 +280,125 @@ describe('auditReady', () => {
   it('handles empty project gracefully', () => {
     const r = auditReady({}, [], []);
     expect(r.checklist.length).toBeGreaterThan(0);
+  });
+});
+
+describe('crossProjectMetrics', () => {
+  it('returns zeros for empty input', () => {
+    const r = crossProjectMetrics([]);
+    expect(r.activeProjects).toBe(0);
+    expect(r.totalFirms).toBe(0);
+    expect(r.totalAwarded).toBe(0);
+    expect(r.projectsLoaded).toBe(0);
+  });
+
+  it('counts active projects (excludes not_started and closed)', () => {
+    const results = [
+      { project: { id: 1, status: 'outreach_in_progress' } },
+      { project: { id: 2, status: 'not_started' } },
+      { project: { id: 3, status: 'closed_won' } },
+      { project: { id: 4, status: 'filling_package' } },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.activeProjects).toBe(2);
+  });
+
+  it('deduplicates firms by company_id across projects', () => {
+    const results = [
+      { project: { id: 1 }, participants: [{ company_id: 10 }, { company_id: 11 }] },
+      { project: { id: 2 }, participants: [{ company_id: 10 }, { company_id: 12 }] },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.totalFirms).toBe(3);
+  });
+
+  it('sums awarded dollars across projects', () => {
+    const results = [
+      { project: { id: 1, bid_packages: [{ awarded_to: { company_id: 10, amount: 200000 } }] }, participants: [], surveys: [] },
+      { project: { id: 2, bid_packages: [{ awarded_to: { company_id: 20, amount: 800000 } }] }, participants: [], surveys: [] },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.hasAwardData).toBe(true);
+    expect(r.totalAwarded).toBe(1000000);
+  });
+
+  it('computes diverse percentage across projects', () => {
+    const diverseCo = makeCompany(10, 'Diverse', [CERTS.dbe]);
+    const results = [
+      {
+        project: { id: 1, req_participation: '18% DBE', bid_packages: [{ awarded_to: { company_id: 10, amount: 180000 } }] },
+        participants: [],
+        surveys: [makeSurvey(10, { participant: diverseCo })],
+      },
+      {
+        project: { id: 2, req_participation: '10% DBE', bid_packages: [{ awarded_to: { company_id: 20, amount: 820000 } }] },
+        participants: [],
+        surveys: [makeSurvey(20, { participant: makeCompany(20, 'Non-Diverse', []) })],
+      },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.diverseAwarded).toBe(180000);
+    expect(r.diversePercent).toBe(18);
+  });
+
+  it('identifies goals at risk', () => {
+    const diverseCo = makeCompany(10, 'Diverse', [CERTS.dbe]);
+    const results = [
+      {
+        project: { id: 1, name: 'At Risk', req_participation: '20% DBE', bid_packages: [{ awarded_to: { company_id: 10, amount: 100000 } }, { awarded_to: { company_id: 20, amount: 900000 } }] },
+        participants: [],
+        surveys: [makeSurvey(10, { participant: diverseCo }), makeSurvey(20, { participant: makeCompany(20, 'Non-Diverse', []) })],
+      },
+      {
+        project: { id: 2, name: 'On Track', req_participation: '10% DBE', bid_packages: [{ awarded_to: { company_id: 30, amount: 200000 } }] },
+        participants: [],
+        surveys: [makeSurvey(30, { participant: makeCompany(30, 'Diverse2', [CERTS.dbe]) })],
+      },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.goalsAtRisk.length).toBe(1);
+    expect(r.goalsAtRisk[0].project.name).toBe('At Risk');
+    expect(r.goalsAtRisk[0].actualPercent).toBe(10);
+    expect(r.goalsAtRisk[0].goalPercent).toBe(20);
+  });
+
+  it('buckets approaching deadlines', () => {
+    const soon = new Date(Date.now() + 3 * 86400000).toISOString();
+    const mid = new Date(Date.now() + 10 * 86400000).toISOString();
+    const later = new Date(Date.now() + 25 * 86400000).toISOString();
+    const results = [
+      { project: { id: 1, bid_due_date: soon } },
+      { project: { id: 2, bid_due_date: mid } },
+      { project: { id: 3, bid_due_date: later } },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.deadlineBuckets.days7.length).toBe(1);
+    expect(r.deadlineBuckets.days14.length).toBe(2);
+    expect(r.deadlineBuckets.days30.length).toBe(3);
+  });
+
+  it('counts outreach status distribution across bid packages', () => {
+    const results = [
+      { project: { id: 1, bid_packages: [{ outreach_status: 'in_progress' }, { outreach_status: 'not_started' }] } },
+      { project: { id: 2, bid_packages: [{ outreach_status: 'in_progress' }, { outreach_status: 'closed' }] } },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.outreachStatusCounts).toEqual({ in_progress: 2, not_started: 1, closed: 1 });
+  });
+
+  it('handles partial results (some projects not yet loaded)', () => {
+    const results = [
+      { project: { id: 1, status: 'outreach_in_progress' }, participants: [{ company_id: 10 }], surveys: [] },
+      null,
+      { project: { id: 3 }, participants: [], surveys: [] },
+    ];
+    const r = crossProjectMetrics(results);
+    expect(r.projectsLoaded).toBe(2);
+    expect(r.totalFirms).toBe(1);
+  });
+
+  it('handles non-array input gracefully', () => {
+    const r = crossProjectMetrics(null);
+    expect(r.projectsLoaded).toBe(0);
   });
 });
