@@ -25,6 +25,7 @@ export default defineConfig({
         short_name: 'Tough Leaf',
         start_url: '/?source=pwa',
         display: 'standalone',
+        display_override: ['standalone', 'fullscreen', 'minimal-ui'],
         orientation: 'portrait',
         background_color: '#ffffff',
         theme_color: '#2491eb',
