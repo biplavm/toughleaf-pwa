@@ -366,3 +366,129 @@ export function crossProjectMetrics(projectResults) {
     projectsLoaded: projectResults.filter((r) => r?.project).length,
   };
 }
+
+const PROJECT_STATUS_ORDER = [
+  'not_started',
+  'discovery',
+  'filling_package',
+  'awaiting_documents',
+  'outreach_in_progress',
+  'outreach_completed',
+  'closed_won',
+  'closed_lost',
+];
+
+export function projectTimeline(project) {
+  if (!project) return null;
+
+  const status = project.status ?? 'not_started';
+  const currentIdx = PROJECT_STATUS_ORDER.indexOf(status);
+  const effectiveIdx = currentIdx === -1 ? 0 : currentIdx;
+
+  const milestones = [];
+
+  const dateFields = [
+    { key: 'meeting_date', label: 'Pre-bid Meeting' },
+    { key: 'send_documents_on_date', label: 'Send Documents' },
+    { key: 'bid_due_date', label: 'Bid Due' },
+    { key: 'approx_start_date', label: 'Approx Start' },
+    { key: 'approx_finish_date', label: 'Approx Finish' },
+  ];
+
+  for (const { key, label } of dateFields) {
+    const date = project[key];
+    if (date) {
+      milestones.push({ key, label, date, overdue: new Date(date) < new Date() });
+    }
+  }
+
+  const bidPackages = Array.isArray(project.bid_packages) ? project.bid_packages : [];
+  for (const pkg of bidPackages) {
+    if (pkg?.outreach_completion_date) {
+      milestones.push({
+        key: `pkg_outreach_${pkg.id}`,
+        label: `Outreach Complete: ${pkg.name ?? 'Package'}`,
+        date: pkg.outreach_completion_date,
+        overdue: false,
+      });
+    }
+    if (pkg?.response_deadline_date) {
+      milestones.push({
+        key: `pkg_response_${pkg.id}`,
+        label: `Response Due: ${pkg.name ?? 'Package'}`,
+        date: pkg.response_deadline_date,
+        overdue: new Date(pkg.response_deadline_date) < new Date(),
+      });
+    }
+  }
+
+  milestones.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const stages = PROJECT_STATUS_ORDER.map((s, i) => ({
+    id: s,
+    label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    reached: i <= effectiveIdx,
+    current: i === effectiveIdx,
+  }));
+
+  return {
+    stages,
+    milestones,
+    currentStage: PROJECT_STATUS_ORDER[effectiveIdx],
+    hasMilestones: milestones.length > 0,
+  };
+}
+
+export function buildOutreachContext(allSurveys) {
+  if (!Array.isArray(allSurveys)) allSurveys = [];
+  const context = new Map();
+
+  function ensure(companyId) {
+    if (!context.has(companyId)) {
+      context.set(companyId, {
+        companyId,
+        invitedCount: 0,
+        awardedCount: 0,
+        contacted: false,
+        projectIds: new Set(),
+      });
+    }
+    return context.get(companyId);
+  }
+
+  for (const s of allSurveys) {
+    if (!s || s.company_id == null) continue;
+    const entry = ensure(s.company_id);
+    const status = s.invitation_status;
+    if (status && status !== 'none') {
+      entry.contacted = true;
+      entry.invitedCount++;
+      if (s.project_id != null) entry.projectIds.add(s.project_id);
+    }
+    const pkgs = Array.isArray(s.included_bid_packages) ? s.included_bid_packages : [];
+    if (pkgs.some((p) => p?.bid_status === 'bid_awarded')) {
+      entry.awardedCount++;
+    }
+  }
+
+  return context;
+}
+
+export function outreachBadge(context, companyId) {
+  if (!context || companyId == null) return null;
+  const entry = context.get(companyId);
+  if (!entry) return { label: 'Never contacted', tone: 'muted' };
+  if (entry.awardedCount > 0) {
+    return {
+      label: `Awarded on ${entry.awardedCount} project${entry.awardedCount > 1 ? 's' : ''}`,
+      tone: 'success',
+    };
+  }
+  if (entry.invitedCount > 0) {
+    return {
+      label: `Invited to ${entry.invitedCount} project${entry.invitedCount > 1 ? 's' : ''}`,
+      tone: 'accent',
+    };
+  }
+  return { label: 'Never contacted', tone: 'muted' };
+}

@@ -5,6 +5,9 @@ import {
   goalVsActual,
   auditReady,
   crossProjectMetrics,
+  projectTimeline,
+  buildOutreachContext,
+  outreachBadge,
 } from './reporting.js';
 
 function makeCompany(id, name, certs = []) {
@@ -400,5 +403,143 @@ describe('crossProjectMetrics', () => {
   it('handles non-array input gracefully', () => {
     const r = crossProjectMetrics(null);
     expect(r.projectsLoaded).toBe(0);
+  });
+});
+
+describe('projectTimeline', () => {
+  it('returns stages with current position marked', () => {
+    const t = projectTimeline({ status: 'outreach_in_progress' });
+    expect(t).not.toBeNull();
+    const current = t.stages.find((s) => s.current);
+    expect(current.id).toBe('outreach_in_progress');
+    expect(current.reached).toBe(true);
+    const future = t.stages.find((s) => s.id === 'outreach_completed');
+    expect(future.reached).toBe(false);
+  });
+
+  it('extracts milestones from project date fields', () => {
+    const t = projectTimeline({
+      status: 'filling_package',
+      meeting_date: '2025-03-01',
+      bid_due_date: '2025-04-15',
+      approx_start_date: '2025-05-01',
+    });
+    expect(t.hasMilestones).toBe(true);
+    expect(t.milestones.length).toBe(3);
+    expect(t.milestones[0].label).toBe('Pre-bid Meeting');
+    expect(t.milestones[1].label).toBe('Bid Due');
+  });
+
+  it('extracts milestones from bid packages', () => {
+    const t = projectTimeline({
+      status: 'outreach_in_progress',
+      bid_packages: [
+        { id: 1, name: 'Plumbing', outreach_completion_date: '2025-02-01' },
+        { id: 2, name: 'Electrical', response_deadline_date: '2025-03-01' },
+      ],
+    });
+    const labels = t.milestones.map((m) => m.label);
+    expect(labels).toContain('Outreach Complete: Plumbing');
+    expect(labels).toContain('Response Due: Electrical');
+  });
+
+  it('sorts milestones by date', () => {
+    const t = projectTimeline({
+      status: 'outreach_in_progress',
+      bid_due_date: '2025-01-01',
+      meeting_date: '2025-03-01',
+    });
+    expect(new Date(t.milestones[0].date).getTime()).toBeLessThanOrEqual(new Date(t.milestones[1].date).getTime());
+  });
+
+  it('marks overdue milestones', () => {
+    const t = projectTimeline({
+      status: 'outreach_in_progress',
+      bid_due_date: '2020-01-01',
+    });
+    expect(t.milestones[0].overdue).toBe(true);
+  });
+
+  it('handles unknown status by defaulting to not_started', () => {
+    const t = projectTimeline({ status: 'weird_status' });
+    expect(t.currentStage).toBe('not_started');
+  });
+
+  it('handles null project', () => {
+    expect(projectTimeline(null)).toBeNull();
+  });
+
+  it('returns hasMilestones false when no dates', () => {
+    const t = projectTimeline({ status: 'not_started' });
+    expect(t.hasMilestones).toBe(false);
+  });
+});
+
+describe('buildOutreachContext', () => {
+  it('builds context map from surveys', () => {
+    const surveys = [
+      makeSurvey(10, { invitationStatus: 'invited' }),
+      makeSurvey(10, { invitationStatus: 'accepted', bidPackages: [{ bid_status: 'bid_awarded' }] }),
+      makeSurvey(20, { invitationStatus: 'invited' }),
+    ];
+    const ctx = buildOutreachContext(surveys);
+    const e10 = ctx.get(10);
+    expect(e10.invitedCount).toBe(2);
+    expect(e10.awardedCount).toBe(1);
+    expect(e10.contacted).toBe(true);
+
+    const e20 = ctx.get(20);
+    expect(e20.invitedCount).toBe(1);
+    expect(e20.awardedCount).toBe(0);
+  });
+
+  it('handles empty surveys', () => {
+    const ctx = buildOutreachContext([]);
+    expect(ctx.size).toBe(0);
+  });
+
+  it('handles non-array input', () => {
+    const ctx = buildOutreachContext(null);
+    expect(ctx.size).toBe(0);
+  });
+});
+
+describe('outreachBadge', () => {
+  it('returns null for no context', () => {
+    expect(outreachBadge(null, 10)).toBeNull();
+  });
+
+  it('returns Never contacted for unknown company', () => {
+    const ctx = new Map();
+    const badge = outreachBadge(ctx, 99);
+    expect(badge.label).toBe('Never contacted');
+    expect(badge.tone).toBe('muted');
+  });
+
+  it('returns Awarded badge for awarded firms', () => {
+    const ctx = buildOutreachContext([
+      makeSurvey(10, { invitationStatus: 'invited', bidPackages: [{ bid_status: 'bid_awarded' }] }),
+    ]);
+    const badge = outreachBadge(ctx, 10);
+    expect(badge.label).toBe('Awarded on 1 project');
+    expect(badge.tone).toBe('success');
+  });
+
+  it('returns Invited badge for contacted but not awarded', () => {
+    const ctx = buildOutreachContext([
+      makeSurvey(10, { invitationStatus: 'invited' }),
+      makeSurvey(10, { invitationStatus: 'viewed' }),
+    ]);
+    const badge = outreachBadge(ctx, 10);
+    expect(badge.label).toBe('Invited to 2 projects');
+    expect(badge.tone).toBe('accent');
+  });
+
+  it('pluralizes correctly', () => {
+    const ctx = buildOutreachContext([
+      makeSurvey(10, { invitationStatus: 'invited' }),
+    ]);
+    const badge = outreachBadge(ctx, 10);
+    expect(badge.label).toBe('Invited to 1 project');
   });
 });

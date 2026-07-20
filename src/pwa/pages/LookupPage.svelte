@@ -1,5 +1,6 @@
 <script>
   import { client } from '../lib/sdk.js';
+  import { buildOutreachContext, outreachBadge } from '../lib/reporting.js';
   import LogoLoader from '../components/LogoLoader.svelte';
   import SkeletonList from '../components/skeleton/SkeletonList.svelte';
   import SkeletonTable from '../components/skeleton/SkeletonTable.svelte';
@@ -51,6 +52,18 @@
   let activeSearch = null;
   let feedbackLoading = {};
 
+  let outreachContext = null;
+  let outreachLoading = false;
+  let onlyNewFirms = false;
+
+  let showAddToProject = false;
+  let addToProjectCompany = null;
+  let addToProjectProjects = [];
+  let addToProjectSelected = null;
+  let addToProjectLoading = false;
+  let addToProjectError = '';
+  let addToProjectSuccess = '';
+
   async function loadLookupData() {
     try {
       const [s, certs, caps, comm, u, bs] = await Promise.all([
@@ -94,6 +107,7 @@
       results = data.results ?? [];
       activeSearch = data;
       await loadHistory();
+      if (results.length > 0) loadOutreachContext();
     } catch (e) {
       error = e instanceof Error ? e.message : 'Search failed';
       results = [];
@@ -148,6 +162,71 @@
 
   function isExcluded(companyId) {
     return activeSearch?.results_feedback?.some((f) => f.matched_company_id === companyId && f.score === -1);
+  }
+
+  async function loadOutreachContext() {
+    outreachLoading = true;
+    try {
+      const projects = await client.projects.list(undefined, { staleTime: 60_000 });
+      const surveyPromises = projects.map((p) =>
+        client.projects.listSurveys(p.id, undefined, { staleTime: 60_000 }).catch(() => [])
+      );
+      const results = await Promise.all(surveyPromises);
+      outreachContext = buildOutreachContext(results.flat());
+    } catch {
+      outreachContext = null;
+    } finally {
+      outreachLoading = false;
+    }
+  }
+
+  function badgeForCompany(companyId) {
+    if (!outreachContext) return null;
+    return outreachBadge(outreachContext, companyId);
+  }
+
+  async function openAddToProject(company) {
+    addToProjectCompany = company;
+    addToProjectSelected = null;
+    addToProjectError = '';
+    addToProjectSuccess = '';
+    showAddToProject = true;
+    try {
+      addToProjectProjects = await client.projects.list(undefined, { staleTime: 30_000 });
+    } catch {
+      addToProjectProjects = [];
+    }
+  }
+
+  async function confirmAddToProject() {
+    if (!addToProjectSelected || !addToProjectCompany) return;
+    addToProjectLoading = true;
+    addToProjectError = '';
+    try {
+      await client.projects.addParticipants(addToProjectSelected, [{
+        company_id: addToProjectCompany.id,
+      }]);
+      addToProjectSuccess = `${addToProjectCompany.company_name ?? 'Firm'} added to project.`;
+      if (outreachContext) {
+        const entry = outreachContext.get(addToProjectCompany.id);
+        if (entry) {
+          entry.contacted = true;
+          entry.invitedCount++;
+        }
+      }
+    } catch (e) {
+      addToProjectError = e instanceof Error ? e.message : 'Failed to add firm to project';
+    } finally {
+      addToProjectLoading = false;
+    }
+  }
+
+  function closeAddToProject() {
+    showAddToProject = false;
+    addToProjectCompany = null;
+    addToProjectSelected = null;
+    addToProjectError = '';
+    addToProjectSuccess = '';
   }
 
   function closeCompany() {
@@ -427,15 +506,44 @@
       <p class="empty-state-desc">Try adjusting your search criteria.</p>
     </div>
   {:else if results.length > 0}
+    {#if outreachLoading}
+      <div class="outreach-loading-bar">Checking outreach history…</div>
+    {/if}
+
+    <div class="lookup-results-toolbar">
+      <label class="filter-toggle">
+        <input type="checkbox" bind:checked={onlyNewFirms} />
+        <span>Only show firms not yet contacted</span>
+      </label>
+    </div>
+
+    {@const visibleResults = onlyNewFirms && outreachContext
+      ? results.filter((c) => !outreachContext.has(c.id))
+      : results}
+
+    {#if visibleResults.length === 0}
+      <div class="empty-state">
+        <p class="empty-state-title">All firms already contacted</p>
+        <p class="empty-state-desc">Every result has been invited to at least one project.</p>
+      </div>
+    {:else}
     <div class="detail-panel">
       <table class="data-table">
-        <thead><tr><th>Company Name</th><th>ID</th><th style="text-align:right">Feedback</th></tr></thead>
+        <thead><tr><th>Company Name</th><th>Outreach</th><th style="text-align:right">Actions</th></tr></thead>
         <tbody>
-          {#each results as company}
+          {#each visibleResults as company}
+            {@const badge = badgeForCompany(company.id)}
             <tr>
               <td class="primary" style="cursor:pointer" on:click={() => openCompany(company.id)}>{company.company_name ?? 'Unknown'}</td>
-              <td class="secondary mono">{company.id}</td>
+              <td class="secondary">
+                {#if badge}
+                  <span class="badge badge-{badge.tone === 'success' ? 'success' : badge.tone === 'accent' ? 'accent' : ''}">{badge.label}</span>
+                {:else}
+                  <span class="badge">—</span>
+                {/if}
+              </td>
               <td style="text-align:right;white-space:nowrap">
+                <button class="btn btn-ghost btn-sm" on:click={() => openAddToProject(company)}>Add to project</button>
                 {#if isExcluded(company.id)}
                   <button class="btn btn-ghost btn-sm" on:click={() => markFeedback(company.id, 0)} disabled={feedbackLoading[company.id]}>
                     {feedbackLoading[company.id] ? '…' : 'Restore'}
@@ -452,14 +560,19 @@
       </table>
 
       <div class="list-view">
-        {#each results as company}
+        {#each visibleResults as company}
+          {@const badge = badgeForCompany(company.id)}
           <div class="list-item">
             <div class="list-item-main" style="cursor:pointer" on:click={() => openCompany(company.id)} role="button" tabindex="0"
                  on:keydown={(e) => e.key === 'Enter' && openCompany(company.id)}>
               <div class="list-item-title">{company.company_name ?? 'Unknown'}</div>
-              <div class="list-item-meta"><span>ID: {company.id}</span></div>
+              <div class="list-item-meta">
+                <span>ID: {company.id}</span>
+                {#if badge}<span class="badge badge-{badge.tone === 'success' ? 'success' : badge.tone === 'accent' ? 'accent' : ''}">{badge.label}</span>{/if}
+              </div>
             </div>
-            <div>
+            <div style="display:flex;flex-direction:column;gap:var(--tl-spacing-xs);align-items:flex-end">
+              <button class="btn btn-ghost btn-sm" on:click={() => openAddToProject(company)}>Add to project</button>
               {#if isExcluded(company.id)}
                 <button class="btn btn-ghost btn-sm" on:click={() => markFeedback(company.id, 0)} disabled={feedbackLoading[company.id]}>
                   {feedbackLoading[company.id] ? '…' : 'Restore'}
@@ -474,6 +587,7 @@
         {/each}
       </div>
     </div>
+    {/if}
   {:else if !searched}
     <div class="empty-state">
       <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -482,3 +596,80 @@
     </div>
   {/if}
 {/if}
+
+<Modal show={showAddToProject} title="Add to Project" on:close={closeAddToProject} maxWidth={480}>
+  {#if addToProjectSuccess}
+    <div class="form-success">{addToProjectSuccess}</div>
+  {:else}
+    <p style="font-size:var(--tl-font-size-sm);color:var(--tl-color-text-on-surface);margin-bottom:var(--tl-spacing-md)">
+      Add <strong>{addToProjectCompany?.company_name ?? 'this firm'}</strong> to a project as a participant.
+    </p>
+    {#if addToProjectError}<div class="form-error">{addToProjectError}</div>{/if}
+    <div class="form-field">
+      <label for="addToProjectSelect">Select project</label>
+      <select id="addToProjectSelect" bind:value={addToProjectSelected} disabled={addToProjectLoading}>
+        <option value={null}>Choose a project…</option>
+        {#each addToProjectProjects as proj}
+          <option value={proj.id}>{proj.name ?? 'Untitled'}</option>
+        {/each}
+      </select>
+    </div>
+  {/if}
+
+  <svelte:fragment slot="footer">
+    {#if addToProjectSuccess}
+      <button class="btn btn-primary btn-sm" on:click={closeAddToProject}>Done</button>
+    {:else}
+      <button class="btn btn-secondary btn-sm" on:click={closeAddToProject} disabled={addToProjectLoading}>Cancel</button>
+      <button class="btn btn-primary btn-sm" on:click={confirmAddToProject} disabled={!addToProjectSelected || addToProjectLoading}>
+        {addToProjectLoading ? 'Adding…' : 'Add to Project'}
+      </button>
+    {/if}
+  </svelte:fragment>
+</Modal>
+
+<style>
+  .outreach-loading-bar {
+    padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
+    background: var(--tl-color-neutral-50);
+    border-radius: var(--tl-border-radius-md);
+    font-size: var(--tl-font-size-xs);
+    color: var(--tl-color-neutral-500);
+    margin-bottom: var(--tl-spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--tl-spacing-xs);
+  }
+  .outreach-loading-bar::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--tl-color-neutral-200);
+    border-top-color: var(--tl-color-brand, #2491eb);
+    border-radius: 50%;
+    animation: outreach-spin 0.8s linear infinite;
+  }
+  @keyframes outreach-spin { to { transform: rotate(360deg); } }
+
+  .lookup-results-toolbar {
+    margin-bottom: var(--tl-spacing-sm);
+  }
+  .filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--tl-spacing-xs);
+    font-size: var(--tl-font-size-sm);
+    color: var(--tl-color-neutral-600);
+    cursor: pointer;
+  }
+  .filter-toggle input { cursor: pointer; }
+
+  .form-success {
+    padding: var(--tl-spacing-sm) var(--tl-spacing-md);
+    background: #dcfce7;
+    border-radius: var(--tl-border-radius-md);
+    color: #15803d;
+    font-size: var(--tl-font-size-sm);
+  }
+</style>

@@ -1,5 +1,5 @@
 <script>
-  import { auditReady, outreachFunnel, goalVsActual, participationBreakdown } from '../lib/reporting.js';
+  import { auditReady, outreachFunnel, goalVsActual, participationBreakdown, projectTimeline } from '../lib/reporting.js';
 
   export let project = null;
   export let participants = [];
@@ -10,6 +10,7 @@
   $: funnel = surveys.length ? outreachFunnel(surveys) : null;
   $: goal = project ? goalVsActual(project, surveys) : null;
   $: breakdown = project ? participationBreakdown(participants, surveys, project) : null;
+  $: timeline = project ? projectTimeline(project) : null;
 
   const funnelLabels = {
     invited: 'Invited',
@@ -23,6 +24,11 @@
   function formatCurrency(v) {
     if (v == null) return '—';
     return `$${Number(v).toLocaleString()}`;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 </script>
 
@@ -121,6 +127,35 @@
             </div>
           {/each}
         </div>
+      {/if}
+    </div>
+  {/if}
+
+  {#if timeline}
+    <div class="report-section">
+      <h3 class="report-heading">Project Timeline</h3>
+      <div class="timeline-stages">
+        {#each timeline.stages as stage}
+          <div class="timeline-stage" class:reached={stage.reached} class:current={stage.current}>
+            <div class="timeline-dot"></div>
+            <span class="timeline-stage-label">{stage.label}</span>
+          </div>
+        {/each}
+      </div>
+
+      {#if timeline.hasMilestones}
+        <div class="timeline-milestones">
+          <div class="timeline-milestones-title">Key Dates</div>
+          {#each timeline.milestones as m}
+            <div class="timeline-milestone" class:overdue={m.overdue}>
+              <span class="timeline-milestone-date">{formatDate(m.date)}</span>
+              <span class="timeline-milestone-label">{m.label}</span>
+              {#if m.overdue}<span class="timeline-milestone-flag">overdue</span>{/if}
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <p class="muted-note">No key dates set for this project.</p>
       {/if}
     </div>
   {/if}
@@ -333,4 +368,97 @@
     color: var(--tl-color-neutral-500);
   }
   .cert-awarded { color: #15803d; font-weight: var(--tl-font-weight-semibold); }
+
+  .timeline-stages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: var(--tl-spacing-md);
+  }
+  .timeline-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 80px;
+    position: relative;
+    padding-bottom: var(--tl-spacing-xs);
+  }
+  .timeline-stage::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--tl-color-neutral-200);
+  }
+  .timeline-stage:first-child::before { display: none; }
+  .timeline-stage.reached::before { background: var(--tl-color-brand, #2491eb); }
+  .timeline-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--tl-color-neutral-200);
+    border: 2px solid var(--tl-color-neutral-200);
+    z-index: 1;
+  }
+  .timeline-stage.reached .timeline-dot {
+    background: var(--tl-color-brand, #2491eb);
+    border-color: var(--tl-color-brand, #2491eb);
+  }
+  .timeline-stage.current .timeline-dot {
+    box-shadow: 0 0 0 4px rgba(36, 145, 235, 0.2);
+  }
+  .timeline-stage-label {
+    font-size: 10px;
+    text-align: center;
+    margin-top: var(--tl-spacing-xs);
+    color: var(--tl-color-neutral-400);
+    line-height: 1.2;
+  }
+  .timeline-stage.reached .timeline-stage-label {
+    color: var(--tl-color-neutral-700);
+  }
+  .timeline-stage.current .timeline-stage-label {
+    color: var(--tl-color-brand, #2491eb);
+    font-weight: var(--tl-font-weight-semibold);
+  }
+
+  .timeline-milestones {
+    padding: var(--tl-spacing-md);
+    background: var(--tl-color-neutral-50);
+    border-radius: var(--tl-border-radius-lg);
+  }
+  .timeline-milestones-title {
+    font-size: var(--tl-font-size-xs);
+    text-transform: uppercase;
+    color: var(--tl-color-neutral-500);
+    margin-bottom: var(--tl-spacing-sm);
+  }
+  .timeline-milestone {
+    display: flex;
+    align-items: center;
+    gap: var(--tl-spacing-sm);
+    padding: var(--tl-spacing-xs) 0;
+    border-bottom: var(--tl-border-width-thin) solid var(--tl-color-neutral-100);
+    font-size: var(--tl-font-size-sm);
+  }
+  .timeline-milestone:last-child { border-bottom: none; }
+  .timeline-milestone-date {
+    flex: 0 0 auto;
+    font-weight: var(--tl-font-weight-semibold);
+    color: var(--tl-color-neutral-700);
+  }
+  .timeline-milestone-label {
+    flex: 1;
+    color: var(--tl-color-neutral-600);
+  }
+  .timeline-milestone.overdue .timeline-milestone-date { color: #dc2626; }
+  .timeline-milestone-flag {
+    font-size: var(--tl-font-size-xs);
+    text-transform: uppercase;
+    color: #dc2626;
+    font-weight: var(--tl-font-weight-semibold);
+  }
 </style>
