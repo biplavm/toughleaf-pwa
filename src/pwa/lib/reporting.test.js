@@ -8,6 +8,8 @@ import {
   projectTimeline,
   buildOutreachContext,
   outreachBadge,
+  actionRequiredSurveys,
+  approachingDeadlines,
 } from './reporting.js';
 
 function makeCompany(id, name, certs = []) {
@@ -31,6 +33,7 @@ function makeSurvey(companyId, opts = {}) {
     invitation_status: invitationStatus,
     workflow_step_id: opts.workflowStepId ?? null,
     workflow_step: opts.workflowStep,
+    workflow_prompt: opts.workflowPrompt,
     participant,
     included_bid_packages: bidPackages,
   };
@@ -541,5 +544,111 @@ describe('outreachBadge', () => {
     ]);
     const badge = outreachBadge(ctx, 10);
     expect(badge.label).toBe('Invited to 1 project');
+  });
+});
+
+describe('actionRequiredSurveys', () => {
+  function makeSurveyWithProject(companyId, opts = {}) {
+    const s = makeSurvey(companyId, opts);
+    return { ...s, project_name: opts.projectName ?? 'Project A', project_id: opts.projectId ?? 1 };
+  }
+
+  it('returns only surveys needing action', () => {
+    const surveys = [
+      makeSurveyWithProject(1, { invitationStatus: 'invited' }),
+      makeSurveyWithProject(2, { invitationStatus: 'viewed' }),
+      makeSurveyWithProject(3, { invitationStatus: 'accepted', workflowStepId: 'step-5' }),
+      makeSurveyWithProject(4, { invitationStatus: 'declined' }),
+    ];
+    const items = actionRequiredSurveys(surveys);
+    expect(items.length).toBe(2);
+    expect(items.map((i) => i.companyId)).toEqual([1, 3]);
+  });
+
+  it('includes surveys with action_required workflow prompt', () => {
+    const surveys = [
+      makeSurveyWithProject(1, {
+        invitationStatus: 'completed',
+        workflowStep: { label: 'Follow Up' },
+        workflowPrompt: { action_required: true, label: 'Call needed' },
+      }),
+    ];
+    const items = actionRequiredSurveys(surveys);
+    expect(items.length).toBe(1);
+    expect(items[0].workflowLabel).toBe('Follow Up — Call needed');
+  });
+
+  it('sorts by due date ascending', () => {
+    const surveys = [
+      makeSurveyWithProject(1, { invitationStatus: 'invited', workflowStep: { due_date: '2025-06-15' } }),
+      makeSurveyWithProject(2, { invitationStatus: 'invited', workflowStep: { due_date: '2025-06-01' } }),
+      makeSurveyWithProject(3, { invitationStatus: 'invited' }),
+    ];
+    const items = actionRequiredSurveys(surveys);
+    expect(items[0].companyId).toBe(2);
+    expect(items[1].companyId).toBe(1);
+    expect(items[2].companyId).toBe(3);
+  });
+
+  it('flags overdue items', () => {
+    const surveys = [
+      makeSurveyWithProject(1, { invitationStatus: 'invited', workflowStep: { due_date: '2020-01-01' } }),
+    ];
+    const items = actionRequiredSurveys(surveys);
+    expect(items[0].overdue).toBe(true);
+  });
+
+  it('extracts company and project names', () => {
+    const surveys = [
+      makeSurveyWithProject(42, { invitationStatus: 'invited', projectName: 'Highway 101', projectId: 7 }),
+    ];
+    const items = actionRequiredSurveys(surveys);
+    expect(items[0].projectName).toBe('Highway 101');
+    expect(items[0].projectId).toBe(7);
+  });
+
+  it('handles empty input', () => {
+    expect(actionRequiredSurveys([])).toEqual([]);
+    expect(actionRequiredSurveys(null)).toEqual([]);
+  });
+});
+
+describe('approachingDeadlines', () => {
+  it('returns projects due within N days', () => {
+    const soon = new Date(Date.now() + 5 * 86400000).toISOString();
+    const later = new Date(Date.now() + 20 * 86400000).toISOString();
+    const past = new Date(Date.now() - 5 * 86400000).toISOString();
+    const projects = [
+      { id: 1, bid_due_date: soon },
+      { id: 2, bid_due_date: later },
+      { id: 3, bid_due_date: past },
+    ];
+    const result = approachingDeadlines(projects, 14);
+    expect(result.length).toBe(1);
+    expect(result[0].project.id).toBe(1);
+  });
+
+  it('sorts by days left ascending', () => {
+    const d1 = new Date(Date.now() + 10 * 86400000).toISOString();
+    const d2 = new Date(Date.now() + 3 * 86400000).toISOString();
+    const result = approachingDeadlines([{ id: 1, bid_due_date: d1 }, { id: 2, bid_due_date: d2 }], 14);
+    expect(result[0].project.id).toBe(2);
+    expect(result[1].project.id).toBe(1);
+  });
+
+  it('excludes projects without due dates', () => {
+    const result = approachingDeadlines([{ id: 1 }, { id: 2, bid_due_date: null }], 30);
+    expect(result).toEqual([]);
+  });
+
+  it('handles empty input', () => {
+    expect(approachingDeadlines([], 30)).toEqual([]);
+    expect(approachingDeadlines(null, 30)).toEqual([]);
+  });
+
+  it('respects custom day range', () => {
+    const d = new Date(Date.now() + 25 * 86400000).toISOString();
+    expect(approachingDeadlines([{ id: 1, bid_due_date: d }], 30).length).toBe(1);
+    expect(approachingDeadlines([{ id: 1, bid_due_date: d }], 7).length).toBe(0);
   });
 });

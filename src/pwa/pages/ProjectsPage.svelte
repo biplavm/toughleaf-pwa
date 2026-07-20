@@ -34,6 +34,14 @@
     } finally {
       loading = false;
     }
+    const hash = window.location.hash;
+    const idMatch = hash.match(/[?&]id=([^&]+)/);
+    if (idMatch) {
+      const id = decodeURIComponent(idMatch[1]);
+      if (projects.some((p) => String(p.id) === id)) {
+        openProject(id);
+      }
+    }
   }
 
   async function openProject(id) {

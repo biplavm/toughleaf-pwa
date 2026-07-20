@@ -492,3 +492,56 @@ export function outreachBadge(context, companyId) {
   }
   return { label: 'Never contacted', tone: 'muted' };
 }
+
+export function actionRequiredSurveys(surveysWithProjects) {
+  if (!Array.isArray(surveysWithProjects)) surveysWithProjects = [];
+
+  const items = [];
+  for (const s of surveysWithProjects) {
+    if (!s) continue;
+    const needsAction =
+      s.invitation_status === 'invited' ||
+      Boolean(s.workflow_step_id) ||
+      Boolean(s.workflow_prompt?.action_required);
+    if (!needsAction) continue;
+
+    const dueDate = s.workflow_step?.due_date ?? s.survey_due_date;
+    const companyName = s.participant?.company_name ?? `Company ${s.company_id}`;
+    const projectName = s.project_name ?? 'Unknown Project';
+    const projectId = s.project_id ?? null;
+
+    items.push({
+      surveyId: s.id,
+      companyId: s.company_id,
+      companyName,
+      projectName,
+      projectId,
+      invitationStatus: s.invitation_status ?? 'pending',
+      workflowLabel: s.workflow_step?.label
+        ? (s.workflow_prompt?.label ? `${s.workflow_step.label} — ${s.workflow_prompt.label}` : s.workflow_step.label)
+        : (s.invitation_status ?? '—'),
+      dueDate,
+      overdue: dueDate ? new Date(dueDate) < new Date() : false,
+      sortKey: dueDate ? new Date(dueDate).getTime() : Infinity,
+    });
+  }
+
+  items.sort((a, b) => a.sortKey - b.sortKey);
+  return items;
+}
+
+export function approachingDeadlines(projects, days = 14) {
+  if (!Array.isArray(projects)) projects = [];
+  const now = new Date();
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  return projects
+    .filter((p) => p?.bid_due_date)
+    .map((p) => {
+      const due = new Date(p.bid_due_date);
+      const diff = (due - now) / dayMs;
+      return { project: p, dueDate: p.bid_due_date, daysLeft: Math.ceil(diff) };
+    })
+    .filter((item) => item.daysLeft >= 0 && item.daysLeft <= days)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+}
