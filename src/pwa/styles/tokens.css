@@ -1,0 +1,633 @@
+/* Tough Leaf Design Token System
+ * Source of truth for visual design properties across all Tough Leaf applications
+ * Version: 1.0.0
+ *
+ * Usage:
+ * 1. Import this file in your main CSS/SASS files
+ * 2. Use tokens via CSS variables: color: var(--tl-color-primary)
+ * 3. Switch themes: add data-theme="dark" attribute to HTML element
+ * 4. Switch products: add data-product="[product-name]" attribute to HTML element
+ */
+
+:root {
+  /* ================================
+   * Base Units & Root Definitions
+   * ================================ */
+
+  --tl-spacing-unit: 4px; /* Baseline grid */
+
+  /* ================================
+   * Color System - Base HSL Values
+   * ================================ */
+
+  /* Tough Leaf Brand Color - Static, never changes */
+  --tl-color-brand-hsl: 210 100% 40%;
+
+  /* Product Line Colors - Dynamic, can change per product */
+  --tl-color-primary-hsl: 210 100% 40%; /* Default = Tough Leaf brand */
+  --tl-color-secondary-hsl: 0 0% 40%; /* Default secondary */
+
+  /* Neutral Palette */
+  --tl-color-neutral-50-hsl: 0 0% 98%;
+  --tl-color-neutral-100-hsl: 0 0% 96%;
+  --tl-color-neutral-200-hsl: 0 0% 93%;
+  --tl-color-neutral-300-hsl: 0 0% 88%;
+  --tl-color-neutral-400-hsl: 0 0% 74%;
+  --tl-color-neutral-500-hsl: 0 0% 62%;
+  --tl-color-neutral-600-hsl: 0 0% 50%;
+  --tl-color-neutral-700-hsl: 0 0% 38%;
+  --tl-color-neutral-800-hsl: 0 0% 26%;
+  --tl-color-neutral-850-hsl: 0 0% 18%;
+  --tl-color-neutral-900-hsl: 0 0% 13%;
+
+  /* Status Colors */
+  --tl-color-success-hsl: 142 76% 36%;
+  --tl-color-warning-hsl: 38 92% 50%;
+  --tl-color-error-hsl: 0 84% 60%;
+  --tl-color-info-hsl: 217 91% 60%;
+
+  /* Background, Surface, Control-Surface HSL */
+  --tl-color-background-hsl: var(--tl-color-neutral-50-hsl);
+  --tl-color-surface-hsl: var(--tl-color-neutral-100-hsl);
+  --tl-color-control-surface-hsl: var(--tl-color-neutral-200-hsl);
+
+  /* ================================
+   * Color System - Derived Colors (Light Theme)
+   * ================================ */
+
+  /* Brand Color Derivatives */
+  --tl-color-brand: hsl(var(--tl-color-brand-hsl));
+  --tl-color-brand-light: color-mix(in oklch, var(--tl-color-brand) 90%, white 10%);
+  --tl-color-brand-lighter: color-mix(in oklch, var(--tl-color-brand) 95%, white 5%);
+  --tl-color-brand-dark: color-mix(in oklch, var(--tl-color-brand) 90%, black 10%);
+  --tl-color-brand-darker: color-mix(in oklch, var(--tl-color-brand) 95%, black 5%);
+  --tl-color-brand-subtle: color-mix(in oklch, var(--tl-color-brand) 8%, transparent 92%);
+  --tl-color-brand-hover: color-mix(in oklch, var(--tl-color-brand) 85%, black 15%);
+  --tl-color-brand-active: color-mix(in oklch, var(--tl-color-brand) 80%, black 20%);
+  --tl-color-brand-focus: color-mix(in oklch, var(--tl-color-brand) 75%, black 25%);
+
+  /* Primary Color Derivatives */
+  --tl-color-primary: hsl(var(--tl-color-primary-hsl));
+  --tl-color-primary-light: color-mix(in oklch, var(--tl-color-primary) 90%, white 10%);
+  --tl-color-primary-lighter: color-mix(in oklch, var(--tl-color-primary) 95%, white 5%);
+  --tl-color-primary-dark: color-mix(in oklch, var(--tl-color-primary) 90%, black 10%);
+  --tl-color-primary-darker: color-mix(in oklch, var(--tl-color-primary) 95%, black 5%);
+  --tl-color-primary-subtle: color-mix(in oklch, var(--tl-color-primary) 8%, transparent 92%);
+  --tl-color-primary-hover: color-mix(in oklch, var(--tl-color-primary) 85%, black 15%);
+  --tl-color-primary-active: color-mix(in oklch, var(--tl-color-primary) 80%, black 20%);
+  --tl-color-primary-focus: color-mix(in oklch, var(--tl-color-primary) 75%, black 25%);
+
+  /* Secondary Color Derivatives */
+  --tl-color-secondary: hsl(var(--tl-color-secondary-hsl));
+  --tl-color-secondary-light: color-mix(in oklch, var(--tl-color-secondary) 90%, white 10%);
+  --tl-color-secondary-lighter: color-mix(in oklch, var(--tl-color-secondary) 95%, white 5%);
+  --tl-color-secondary-dark: color-mix(in oklch, var(--tl-color-secondary) 90%, black 10%);
+  --tl-color-secondary-darker: color-mix(in oklch, var(--tl-color-secondary) 95%, black 5%);
+  --tl-color-secondary-subtle: color-mix(in oklch, var(--tl-color-secondary) 8%, transparent 92%);
+  --tl-color-secondary-hover: color-mix(in oklch, var(--tl-color-secondary) 85%, black 15%);
+  --tl-color-secondary-active: color-mix(in oklch, var(--tl-color-secondary) 80%, black 20%);
+  --tl-color-secondary-focus: color-mix(in oklch, var(--tl-color-secondary) 75%, black 25%);
+
+  /* Status Colors */
+  --tl-color-success: hsl(var(--tl-color-success-hsl));
+  --tl-color-warning: hsl(var(--tl-color-warning-hsl));
+  --tl-color-error: hsl(var(--tl-color-error-hsl));
+  --tl-color-info: hsl(var(--tl-color-info-hsl));
+
+  /* Status Color Derivatives */
+  --tl-color-success-subtle: color-mix(in oklch, var(--tl-color-success) 10%, white 90%);
+  --tl-color-warning-subtle: color-mix(in oklch, var(--tl-color-warning) 10%, white 90%);
+  --tl-color-error-subtle: color-mix(in oklch, var(--tl-color-error) 10%, white 90%);
+  --tl-color-info-subtle: color-mix(in oklch, var(--tl-color-info) 10%, white 90%);
+
+  /* Neutral Colors */
+  --tl-color-neutral-50: hsl(var(--tl-color-neutral-50-hsl));
+  --tl-color-neutral-100: hsl(var(--tl-color-neutral-100-hsl));
+  --tl-color-neutral-200: hsl(var(--tl-color-neutral-200-hsl));
+  --tl-color-neutral-300: hsl(var(--tl-color-neutral-300-hsl));
+  --tl-color-neutral-400: hsl(var(--tl-color-neutral-400-hsl));
+  --tl-color-neutral-500: hsl(var(--tl-color-neutral-500-hsl));
+  --tl-color-neutral-600: hsl(var(--tl-color-neutral-600-hsl));
+  --tl-color-neutral-700: hsl(var(--tl-color-neutral-700-hsl));
+  --tl-color-neutral-800: hsl(var(--tl-color-neutral-800-hsl));
+  --tl-color-neutral-850: hsl(var(--tl-color-neutral-850-hsl));
+  --tl-color-neutral-900: hsl(var(--tl-color-neutral-900-hsl));
+
+  /* Background, Surface, Control-Surface Colors */
+  --tl-color-background: hsl(var(--tl-color-background-hsl));
+  --tl-color-surface: hsl(var(--tl-color-surface-hsl));
+  --tl-color-control-surface: hsl(var(--tl-color-control-surface-hsl));
+
+  /* Surface Colors */
+  --tl-color-brand-surface: color-mix(in oklch, var(--tl-color-brand) 10%, white 90%);
+  --tl-color-brand-surface-hover: color-mix(in oklch, var(--tl-color-brand) 15%, white 85%);
+  --tl-color-primary-surface: color-mix(in oklch, var(--tl-color-primary) 10%, white 90%);
+  --tl-color-primary-surface-hover: color-mix(in oklch, var(--tl-color-primary) 15%, white 85%);
+  --tl-color-secondary-surface: color-mix(in oklch, var(--tl-color-secondary) 10%, white 90%);
+  --tl-color-secondary-surface-hover: color-mix(in oklch, var(--tl-color-secondary) 15%, white 85%);
+
+  /* ================================
+   * Text Color System (Light Theme)
+   * ================================ */
+
+  /* Base Text Color - Neutral text that contrasts with theme background */
+  --tl-color-text-base: var(--tl-color-neutral-900);
+
+  /* Background, Surface, Control-Surface Text Colors */
+  --tl-color-text-on-background: var(--tl-color-neutral-900);
+  --tl-color-text-on-surface: var(--tl-color-neutral-800);
+  --tl-color-text-on-control-surface: var(--tl-color-neutral-700);
+
+  /* Surface Text Colors */
+  --tl-color-text-on-brand-surface: var(--tl-color-neutral-900);
+  --tl-color-text-on-primary-surface: var(--tl-color-neutral-900);
+  --tl-color-text-on-secondary-surface: var(--tl-color-neutral-900);
+
+  /* Brand Text Colors */
+  --tl-color-text-on-brand: var(--tl-color-neutral-50); /* White text for dark brand color (40% lightness) */
+  --tl-color-text-on-brand-muted: color-mix(in oklch, var(--tl-color-text-on-brand) 60%, transparent 40%);
+  --tl-color-text-on-brand-disabled: color-mix(in oklch, var(--tl-color-text-on-brand) 40%, var(--tl-color-neutral-400) 60%);
+
+  /* Primary Text Colors */
+  --tl-color-text-on-primary: var(--tl-color-neutral-50); /* White text for dark primary color (40% lightness) */
+  --tl-color-text-on-primary-muted: color-mix(in oklch, var(--tl-color-text-on-primary) 60%, transparent 40%);
+  --tl-color-text-on-primary-disabled: color-mix(in oklch, var(--tl-color-text-on-primary) 40%, var(--tl-color-neutral-400) 60%);
+
+  /* Secondary Text Colors */
+  --tl-color-text-on-secondary: var(--tl-color-neutral-50); /* White text for dark secondary color (40% lightness) */
+  --tl-color-text-on-secondary-muted: color-mix(in oklch, var(--tl-color-text-on-secondary) 60%, transparent 40%);
+  --tl-color-text-on-secondary-disabled: color-mix(in oklch, var(--tl-color-text-on-secondary) 40%, var(--tl-color-neutral-400) 60%);
+
+  /* Background, Surface, Control-Surface Text Variants */
+  --tl-color-text-on-background-muted: color-mix(in oklch, var(--tl-color-text-on-background) 60%, transparent 40%);
+  --tl-color-text-on-background-disabled: color-mix(in oklch, var(--tl-color-text-on-background) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-surface-muted: color-mix(in oklch, var(--tl-color-text-on-surface) 60%, transparent 40%);
+  --tl-color-text-on-surface-disabled: color-mix(in oklch, var(--tl-color-text-on-surface) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-control-surface-muted: color-mix(in oklch, var(--tl-color-text-on-control-surface) 60%, transparent 40%);
+  --tl-color-text-on-control-surface-disabled: color-mix(
+    in oklch,
+    var(--tl-color-text-on-control-surface) 40%,
+    var(--tl-color-neutral-400) 60%
+  );
+
+  /* Status Text Colors */
+  --tl-color-text-on-success: var(--tl-color-neutral-50); /* White text on dark green (36% lightness) */
+  --tl-color-text-on-warning: var(--tl-color-neutral-900); /* Black text on yellow (50% lightness - better contrast) */
+  --tl-color-text-on-error: hsl(0, 100%, 95%); /* Almost white text on red (60% lightness) - enhanced contrast */
+  --tl-color-text-on-info: hsl(0, 0%, 96%); /* Almost white text on blue (60% lightness) - enhanced contrast */
+
+  --tl-color-text-on-success-muted: color-mix(in oklch, var(--tl-color-text-on-success) 60%, transparent 40%);
+  --tl-color-text-on-warning-muted: color-mix(in oklch, var(--tl-color-text-on-warning) 60%, transparent 40%);
+  --tl-color-text-on-error-muted: color-mix(in oklch, var(--tl-color-text-on-error) 60%, transparent 40%);
+  --tl-color-text-on-info-muted: color-mix(in oklch, var(--tl-color-text-on-info) 60%, transparent 40%);
+
+  --tl-color-text-on-success-disabled: color-mix(in oklch, var(--tl-color-text-on-success) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-warning-disabled: color-mix(in oklch, var(--tl-color-text-on-warning) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-error-disabled: color-mix(in oklch, var(--tl-color-text-on-error) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-info-disabled: color-mix(in oklch, var(--tl-color-text-on-info) 40%, var(--tl-color-neutral-400) 60%);
+
+  /* ================================
+   * Typography System
+   * ================================ */
+
+  /* Font Families */
+  --tl-font-family-sans: 'Inter', system-ui, sans-serif;
+  --tl-font-family-mono: 'Roboto Mono', 'Courier New', monospace;
+  --tl-font-family-serif: Georgia, 'Times New Roman', serif;
+
+  /* Font Size Scale (Minor Third - 1.2 ratio, base: 16px) */
+  --tl-font-size-xs: 1.11rem; /* 11.11px */
+  --tl-font-size-sm: 1.33rem; /* 13.33px */
+  --tl-font-size-md: 1.6rem; /* 16px (base) */
+  --tl-font-size-lg: 1.92rem; /* 19.2px */
+  --tl-font-size-xl: 2.304rem; /* 23.04px */
+  --tl-font-size-2xl: 2.765rem; /* 27.65px */
+  --tl-font-size-3xl: 3.318rem; /* 33.18px */
+  --tl-font-size-4xl: 3.981rem; /* 39.81px */
+  --tl-font-size-5xl: 4.778rem; /* 47.78px */
+
+  /* Font Weights */
+  --tl-font-weight-light: 300;
+  --tl-font-weight-normal: 400;
+  --tl-font-weight-medium: 500;
+  --tl-font-weight-semibold: 600;
+  --tl-font-weight-bold: 700;
+
+  /* Line Heights */
+  --tl-line-height-tight: 1.2;
+  --tl-line-height-normal: 1.5;
+  --tl-line-height-relaxed: 1.75;
+
+  /* Semantic Typography Tokens - Individual Properties */
+  --tl-typography-hero-size: var(--tl-font-size-5xl);
+  --tl-typography-hero-weight: var(--tl-font-weight-bold);
+  --tl-typography-hero-line-height: var(--tl-line-height-tight);
+  --tl-typography-hero-family: var(--tl-font-family-sans);
+
+  --tl-typography-page-title-size: var(--tl-font-size-4xl);
+  --tl-typography-page-title-weight: var(--tl-font-weight-bold);
+  --tl-typography-page-title-line-height: var(--tl-line-height-tight);
+  --tl-typography-page-title-family: var(--tl-font-family-sans);
+
+  --tl-typography-section-title-size: var(--tl-font-size-3xl);
+  --tl-typography-section-title-weight: var(--tl-font-weight-semibold);
+  --tl-typography-section-title-line-height: var(--tl-line-height-tight);
+  --tl-typography-section-title-family: var(--tl-font-family-sans);
+
+  --tl-typography-subsection-title-size: var(--tl-font-size-2xl);
+  --tl-typography-subsection-title-weight: var(--tl-font-weight-semibold);
+  --tl-typography-subsection-title-line-height: var(--tl-line-height-tight);
+  --tl-typography-subsection-title-family: var(--tl-font-family-sans);
+
+  --tl-typography-heading-size: var(--tl-font-size-xl);
+  --tl-typography-heading-weight: var(--tl-font-weight-semibold);
+  --tl-typography-heading-line-height: var(--tl-line-height-tight);
+  --tl-typography-heading-family: var(--tl-font-family-sans);
+
+  --tl-typography-body-large-size: var(--tl-font-size-lg);
+  --tl-typography-body-large-weight: var(--tl-font-weight-normal);
+  --tl-typography-body-large-line-height: var(--tl-line-height-normal);
+  --tl-typography-body-large-family: var(--tl-font-family-sans);
+
+  --tl-typography-body-size: var(--tl-font-size-md);
+  --tl-typography-body-weight: var(--tl-font-weight-normal);
+  --tl-typography-body-line-height: var(--tl-line-height-normal);
+  --tl-typography-body-family: var(--tl-font-family-sans);
+
+  --tl-typography-body-small-size: var(--tl-font-size-sm);
+  --tl-typography-body-small-weight: var(--tl-font-weight-normal);
+  --tl-typography-body-small-line-height: var(--tl-line-height-normal);
+  --tl-typography-body-small-family: var(--tl-font-family-sans);
+
+  --tl-typography-label-size: var(--tl-font-size-sm);
+  --tl-typography-label-weight: var(--tl-font-weight-medium);
+  --tl-typography-label-line-height: var(--tl-line-height-tight);
+  --tl-typography-label-family: var(--tl-font-family-sans);
+
+  --tl-typography-caption-size: var(--tl-font-size-xs);
+  --tl-typography-caption-weight: var(--tl-font-weight-normal);
+  --tl-typography-caption-line-height: var(--tl-line-height-tight);
+  --tl-typography-caption-family: var(--tl-font-family-sans);
+
+  /* ================================
+   * Spacing System (4px baseline grid)
+   * ================================ */
+
+  --tl-spacing-xxs: calc(var(--tl-spacing-unit) * 1); /* 4px */
+  --tl-spacing-xs: calc(var(--tl-spacing-unit) * 2); /* 8px */
+  --tl-spacing-sm: calc(var(--tl-spacing-unit) * 3); /* 12px */
+  --tl-spacing-md: calc(var(--tl-spacing-unit) * 4); /* 16px */
+  --tl-spacing-lg: calc(var(--tl-spacing-unit) * 6); /* 24px */
+  --tl-spacing-xl: calc(var(--tl-spacing-unit) * 8); /* 32px */
+  --tl-spacing-2xl: calc(var(--tl-spacing-unit) * 12); /* 48px */
+  --tl-spacing-3xl: calc(var(--tl-spacing-unit) * 16); /* 64px */
+  --tl-spacing-4xl: calc(var(--tl-spacing-unit) * 24); /* 96px */
+
+  /* Semantic Spacing Tokens */
+  --tl-spacing-container-padding: var(--tl-spacing-lg);
+  --tl-spacing-section-gap: var(--tl-spacing-2xl);
+  --tl-spacing-card-padding: var(--tl-spacing-md);
+  --tl-spacing-button-padding-vertical: var(--tl-spacing-sm);
+  --tl-spacing-button-padding-horizontal: var(--tl-spacing-md);
+  --tl-spacing-input-padding-vertical: var(--tl-spacing-sm);
+  --tl-spacing-input-padding-horizontal: var(--tl-spacing-md);
+  --tl-spacing-form-gap: var(--tl-spacing-lg);
+  --tl-spacing-grid-gap: var(--tl-spacing-md);
+
+  /* ================================
+   * Elevation & Border System
+   * ================================ */
+
+  /* Shadows */
+  --tl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --tl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --tl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --tl-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --tl-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --tl-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+  /* Border Radius */
+  --tl-border-radius-none: 0;
+  --tl-border-radius-sm: 0.125rem;
+  --tl-border-radius-md: 0.25rem;
+  --tl-border-radius-lg: 0.5rem;
+  --tl-border-radius-xl: 0.75rem;
+  --tl-border-radius-2xl: 1rem;
+  --tl-border-radius-full: 9999px;
+
+  /* Semantic Border Radius Tokens */
+  --tl-border-radius-card: var(--tl-border-radius-lg);
+  --tl-border-radius-button: var(--tl-border-radius-md);
+  --tl-border-radius-input: var(--tl-border-radius-md);
+  --tl-border-radius-badge: var(--tl-border-radius-full);
+  --tl-border-radius-alert: var(--tl-border-radius-md);
+
+  /* Border Width */
+  --tl-border-width-thin: 1px;
+  --tl-border-width-medium: 2px;
+  --tl-border-width-thick: 4px;
+}
+
+/* ================================
+ * Dark Theme Overrides
+ * ================================ */
+
+[data-theme='dark'] {
+  /* Background, Surface, Control-Surface HSL (Dark Theme) */
+  --tl-color-background-hsl: var(--tl-color-neutral-900-hsl);
+  --tl-color-surface-hsl: var(--tl-color-neutral-850-hsl);
+  --tl-color-control-surface-hsl: var(--tl-color-neutral-700-hsl);
+
+  /* Background, Surface, Control-Surface Colors */
+  --tl-color-background: hsl(var(--tl-color-background-hsl));
+  --tl-color-surface: hsl(var(--tl-color-surface-hsl));
+  --tl-color-control-surface: hsl(var(--tl-color-control-surface-hsl));
+
+  /* Surface Colors (Dark Theme) */
+  --tl-color-brand-surface: color-mix(in oklch, var(--tl-color-brand) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-brand-surface-hover: color-mix(in oklch, var(--tl-color-brand) 15%, var(--tl-color-neutral-900) 85%);
+  --tl-color-primary-surface: color-mix(in oklch, var(--tl-color-primary) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-primary-surface-hover: color-mix(in oklch, var(--tl-color-primary) 15%, var(--tl-color-neutral-900) 85%);
+  --tl-color-secondary-surface: color-mix(in oklch, var(--tl-color-secondary) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-secondary-surface-hover: color-mix(in oklch, var(--tl-color-secondary) 15%, var(--tl-color-neutral-900) 85%);
+
+  /* Status Color Derivatives (Dark Theme) */
+  --tl-color-success-subtle: color-mix(in oklch, var(--tl-color-success) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-warning-subtle: color-mix(in oklch, var(--tl-color-warning) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-error-subtle: color-mix(in oklch, var(--tl-color-error) 10%, var(--tl-color-neutral-900) 90%);
+  --tl-color-info-subtle: color-mix(in oklch, var(--tl-color-info) 10%, var(--tl-color-neutral-900) 90%);
+
+  /* Text Colors (Dark Theme) */
+  --tl-color-text-base: var(--tl-color-neutral-50);
+  --tl-color-text-on-background: var(--tl-color-neutral-50);
+  --tl-color-text-on-surface: var(--tl-color-neutral-100);
+  --tl-color-text-on-control-surface: var(--tl-color-neutral-200);
+
+  /* Brand, Primary, Secondary Text Colors (Dark Theme) */
+  --tl-color-text-on-brand: hsl(0, 0%, 8%); /* Very dark black text on light brand surfaces in dark theme */
+  --tl-color-text-on-primary: hsl(0, 0%, 8%); /* Very dark black text on light primary surfaces in dark theme */
+  --tl-color-text-on-secondary: hsl(0, 0%, 8%); /* Very dark black text on light secondary surfaces in dark theme */
+
+  /* Status Text Colors (Dark Theme) */
+  --tl-color-text-on-success: var(--tl-color-neutral-900); /* Black text on light success surfaces in dark theme */
+  --tl-color-text-on-warning: var(--tl-color-neutral-900); /* Black text on light warning surfaces in dark theme */
+  --tl-color-text-on-error: hsl(0, 0%, 8%); /* Very dark black text on light error surfaces in dark theme - enhanced contrast */
+  --tl-color-text-on-info: hsl(0, 0%, 8%); /* Very dark black text on light info surfaces in dark theme - enhanced contrast */
+
+  /* Text color variants (Dark Theme - maintain same mixing ratios) */
+  --tl-color-text-on-brand-muted: color-mix(in oklch, var(--tl-color-text-on-brand) 60%, transparent 40%);
+  --tl-color-text-on-brand-disabled: color-mix(in oklch, var(--tl-color-text-on-brand) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-primary-muted: color-mix(in oklch, var(--tl-color-text-on-primary) 60%, transparent 40%);
+  --tl-color-text-on-primary-disabled: color-mix(in oklch, var(--tl-color-text-on-primary) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-secondary-muted: color-mix(in oklch, var(--tl-color-text-on-secondary) 60%, transparent 40%);
+  --tl-color-text-on-secondary-disabled: color-mix(in oklch, var(--tl-color-text-on-secondary) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-success-muted: color-mix(in oklch, var(--tl-color-text-on-success) 60%, transparent 40%);
+  --tl-color-text-on-success-disabled: color-mix(in oklch, var(--tl-color-text-on-success) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-warning-muted: color-mix(in oklch, var(--tl-color-text-on-warning) 60%, transparent 40%);
+  --tl-color-text-on-warning-disabled: color-mix(in oklch, var(--tl-color-text-on-warning) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-error-muted: color-mix(in oklch, var(--tl-color-text-on-error) 60%, transparent 40%);
+  --tl-color-text-on-error-disabled: color-mix(in oklch, var(--tl-color-text-on-error) 40%, var(--tl-color-neutral-400) 60%);
+  --tl-color-text-on-info-muted: color-mix(in oklch, var(--tl-color-text-on-info) 60%, transparent 40%);
+  --tl-color-text-on-info-disabled: color-mix(in oklch, var(--tl-color-text-on-info) 40%, var(--tl-color-neutral-400) 60%);
+
+  /* Shadows with increased transparency for dark theme */
+  --tl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --tl-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --tl-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+  --tl-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --tl-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  --tl-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* ================================
+ * Product-Specific Color Overrides
+ * ================================ */
+
+/* Example: Product Line A */
+[data-product='product-a'] {
+  --tl-color-primary-hsl: 280 80% 50%; /* Example: purple primary */
+  --tl-color-secondary-hsl: 160 70% 40%; /* Example: teal secondary */
+}
+
+/* Example: Product Line B */
+[data-product='product-b'] {
+  --tl-color-primary-hsl: 350 85% 55%; /* Example: red primary */
+  --tl-color-secondary-hsl: 40 90% 50%; /* Example: orange secondary */
+}
+
+/* ================================
+ * Responsive Token Variations
+ * ================================ */
+
+/* Mobile (320px and above) */
+@media (min-width: 320px) {
+  :root {
+    --tl-font-size-xs: 1.2rem; /* 12px */
+    --tl-font-size-sm: 1.4rem; /* 14px */
+    --tl-font-size-lg: 1.8rem; /* 18px */
+    --tl-font-size-xl: 2.1rem; /* 21px */
+    --tl-font-size-2xl: 2.4rem; /* 24px */
+    --tl-font-size-3xl: 3rem; /* 30px */
+    --tl-font-size-4xl: 3.6rem; /* 36px */
+    --tl-font-size-5xl: 4rem; /* 40px */
+
+    /* Responsive Spacing Adjustments */
+    --tl-spacing-container-padding: var(--tl-spacing-md);
+    --tl-spacing-section-gap: var(--tl-spacing-xl);
+    --tl-spacing-card-padding: var(--tl-spacing-sm);
+    --tl-spacing-button-padding-vertical: var(--tl-spacing-xs);
+    --tl-spacing-button-padding-horizontal: var(--tl-spacing-sm);
+  }
+}
+
+/* Tablet (768px and above) */
+@media (min-width: 768px) {
+  :root {
+    --tl-spacing-container-padding: var(--tl-spacing-lg);
+    --tl-spacing-card-padding: var(--tl-spacing-md);
+  }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+  :root {
+    /* Use all desktop-scale font sizes */
+  }
+}
+
+/* Wide (1440px and above) */
+@media (min-width: 1440px) {
+  :root {
+    /* Optional adjustments for very large screens */
+  }
+}
+
+/* ================================
+ * Reduced Motion Support
+ * ================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tl-animation-duration-fast: 0ms;
+    --tl-animation-duration-normal: 0ms;
+    --tl-animation-duration-slow: 0ms;
+  }
+}
+
+/* ================================
+ * Helper Classes
+ * ================================ */
+
+/* Text color helpers */
+.tl-text-primary {
+  color: var(--tl-color-primary);
+}
+.tl-text-secondary {
+  color: var(--tl-color-secondary);
+}
+.tl-text-brand {
+  color: var(--tl-color-brand);
+}
+.tl-text-success {
+  color: var(--tl-color-success);
+}
+.tl-text-warning {
+  color: var(--tl-color-warning);
+}
+.tl-text-error {
+  color: var(--tl-color-error);
+}
+.tl-text-info {
+  color: var(--tl-color-info);
+}
+
+/* Background color helpers */
+.tl-bg-primary {
+  background-color: var(--tl-color-primary);
+}
+.tl-bg-secondary {
+  background-color: var(--tl-color-secondary);
+}
+.tl-bg-brand {
+  background-color: var(--tl-color-brand);
+}
+.tl-bg-success {
+  background-color: var(--tl-color-success);
+}
+.tl-bg-warning {
+  background-color: var(--tl-color-warning);
+}
+.tl-bg-error {
+  background-color: var(--tl-color-error);
+}
+.tl-bg-info {
+  background-color: var(--tl-color-info);
+}
+
+/* Surface color helpers */
+.tl-bg-surface {
+  background-color: var(--tl-color-surface);
+}
+.tl-bg-control-surface {
+  background-color: var(--tl-color-control-surface);
+}
+.tl-bg-brand-surface {
+  background-color: var(--tl-color-brand-surface);
+}
+.tl-bg-primary-surface {
+  background-color: var(--tl-color-primary-surface);
+}
+.tl-bg-secondary-surface {
+  background-color: var(--tl-color-secondary-surface);
+}
+
+/* Border helpers */
+.tl-border {
+  border: var(--tl-border-width-thin) solid var(--tl-color-neutral-300);
+}
+.tl-border-primary {
+  border-color: var(--tl-color-primary);
+}
+.tl-border-secondary {
+  border-color: var(--tl-color-secondary);
+}
+.tl-border-brand {
+  border-color: var(--tl-color-brand);
+}
+
+/* Shadow helpers */
+.tl-shadow-sm {
+  box-shadow: var(--tl-shadow-sm);
+}
+.tl-shadow-md {
+  box-shadow: var(--tl-shadow-md);
+}
+.tl-shadow-lg {
+  box-shadow: var(--tl-shadow-lg);
+}
+.tl-shadow-xl {
+  box-shadow: var(--tl-shadow-xl);
+}
+
+/* Radius helpers */
+.tl-rounded-sm {
+  border-radius: var(--tl-border-radius-sm);
+}
+.tl-rounded-md {
+  border-radius: var(--tl-border-radius-md);
+}
+.tl-rounded-lg {
+  border-radius: var(--tl-border-radius-lg);
+}
+.tl-rounded-full {
+  border-radius: var(--tl-border-radius-full);
+}
+
+/* Spacing helpers */
+.tl-p-sm {
+  padding: var(--tl-spacing-sm);
+}
+.tl-p-md {
+  padding: var(--tl-spacing-md);
+}
+.tl-p-lg {
+  padding: var(--tl-spacing-lg);
+}
+.tl-m-sm {
+  margin: var(--tl-spacing-sm);
+}
+.tl-m-md {
+  margin: var(--tl-spacing-md);
+}
+.tl-m-lg {
+  margin: var(--tl-spacing-lg);
+}
+
+/* Typography helpers */
+.tl-text-hero {
+  font: var(--tl-typography-hero);
+}
+.tl-text-page-title {
+  font: var(--tl-typography-page-title);
+}
+.tl-text-section-title {
+  font: var(--tl-typography-section-title);
+}
+.tl-text-heading {
+  font: var(--tl-typography-heading);
+}
+.tl-text-body-large {
+  font: var(--tl-typography-body-large);
+}
+.tl-text-body {
+  font: var(--tl-typography-body);
+}
+.tl-text-body-small {
+  font: var(--tl-typography-body-small);
+}
+.tl-text-label {
+  font: var(--tl-typography-label);
+}
+.tl-text-caption {
+  font: var(--tl-typography-caption);
+}
