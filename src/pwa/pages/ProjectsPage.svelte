@@ -1,8 +1,10 @@
 <script>
   import { client } from '../lib/sdk.js';
+  import { auditReady } from '../lib/reporting.js';
   import SkeletonTable from '../components/skeleton/SkeletonTable.svelte';
   import SkeletonDetail from '../components/skeleton/SkeletonDetail.svelte';
   import SkeletonList from '../components/skeleton/SkeletonList.svelte';
+  import ProjectReport from '../components/ProjectReport.svelte';
 
   let view = 'list';
   let projects = [];
@@ -15,6 +17,7 @@
   let participants = [];
   let surveys = [];
   let projectLoading = false;
+  let projectTab = 'overview';
 
   let selectedBidPackage = null;
   let bidPackageData = null;
@@ -35,6 +38,7 @@
 
   async function openProject(id) {
     view = 'project';
+    projectTab = 'overview';
     projectLoading = true;
     selectedProject = id;
     projectData = null;
@@ -82,6 +86,7 @@
     bidPackageData = null;
     projectSearch = '';
     bidPackageSearch = '';
+    projectTab = 'overview';
   }
 
   function goToProject() {
@@ -113,6 +118,16 @@
   function formatCurrency(value) {
     if (value == null) return '—';
     return `$${Number(value).toLocaleString()}`;
+  }
+
+  function projectAuditBadge(p) {
+    const pkgs = Array.isArray(p?.bid_packages) ? p.bid_packages : [];
+    if (pkgs.length === 0) return { label: 'No packages', tone: 'muted' };
+    const reqTypes = Array.isArray(p?.req_certification_types) ? p.req_certification_types : [];
+    const allStarted = pkgs.every((pkg) => pkg?.outreach_status && pkg.outreach_status !== 'not_started');
+    if (!allStarted) return { label: 'Outreach not started', tone: 'warn' };
+    if (reqTypes.length === 0) return { label: 'No cert reqs', tone: 'muted' };
+    return { label: 'In progress', tone: 'info' };
   }
 
   $: filteredProjects = projectSearch
@@ -167,16 +182,18 @@
       <div class="detail-panel">
         <table class="data-table">
           <thead>
-            <tr><th>Name</th><th>Type</th><th>Due Date</th><th>State</th></tr>
+            <tr><th>Name</th><th>Type</th><th>Due Date</th><th>State</th><th>Status</th></tr>
           </thead>
           <tbody>
             {#each filteredProjects as project}
+              {@const badge = projectAuditBadge(project)}
               <tr on:click={() => openProject(project.id)} role="button" tabindex="0"
                   on:keydown={(e) => e.key === 'Enter' && openProject(project.id)}>
                 <td class="primary">{project.name ?? 'Untitled'}</td>
                 <td class="secondary">{project.project_type ?? '—'}</td>
                 <td class="secondary mono">{formatDate(project.bid_due_date)}</td>
                 <td>{#if project.state}<span class="badge">{project.state}</span>{:else}—{/if}</td>
+                <td><span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : ''}">{badge.label}</span></td>
               </tr>
             {/each}
           </tbody>
@@ -184,6 +201,7 @@
 
         <div class="list-view">
           {#each filteredProjects as project}
+            {@const badge = projectAuditBadge(project)}
             <div class="list-item" on:click={() => openProject(project.id)} role="button" tabindex="0"
                  on:keydown={(e) => e.key === 'Enter' && openProject(project.id)}>
               <div class="list-item-main">
@@ -191,6 +209,7 @@
                 <div class="list-item-meta">
                   <span>{project.project_type ?? '—'}</span>
                   {#if project.bid_due_date}<span>Due {formatDate(project.bid_due_date)}</span>{/if}
+                  <span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : ''}">{badge.label}</span>
                 </div>
               </div>
               {#if project.state}<span class="badge">{project.state}</span>{/if}
@@ -214,6 +233,14 @@
       <div class="detail-panel-body"><SkeletonDetail rows={4} sections={1} /></div>
     </div>
   {:else if projectData}
+    <div class="project-tabs">
+      <button class="project-tab" class:active={projectTab === 'overview'} on:click={() => (projectTab = 'overview')}>Overview</button>
+      <button class="project-tab" class:active={projectTab === 'report'} on:click={() => (projectTab = 'report')}>Report</button>
+    </div>
+
+    {#if projectTab === 'report'}
+      <ProjectReport {project} {participants} {surveys} loading={false} />
+    {:else}
     <div class="detail-panel">
       <div class="detail-panel-header">
         <div>
@@ -353,6 +380,7 @@
     {/if}
 
     <p class="muted-note">Editing and advanced actions are available on the desktop application.</p>
+    {/if}
   {/if}
 
 {:else if view === 'bidPackage'}

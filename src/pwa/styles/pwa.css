@@ -615,6 +615,33 @@ a:hover { text-decoration: underline; }
 .outreach-tab:hover { color: var(--tl-color-text-on-background); }
 .outreach-tab.active { color: var(--tl-color-brand); border-bottom-color: var(--tl-color-brand); }
 
+/* ── Project detail tabs ─────────────────────────── */
+
+.project-tabs {
+  width: 100%;
+  display: flex;
+  gap: var(--tl-spacing-xs);
+  margin-bottom: var(--tl-spacing-md);
+  border-bottom: var(--tl-border-width-thin) solid var(--tl-color-neutral-200);
+}
+
+.project-tab {
+  padding: var(--tl-spacing-sm) var(--tl-spacing-md);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: var(--tl-font-size-sm);
+  font-weight: var(--tl-font-weight-medium);
+  color: var(--tl-color-neutral-500);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: -1px;
+}
+
+.project-tab:hover { color: var(--tl-color-text-on-background); }
+.project-tab.active { color: var(--tl-color-brand); border-bottom-color: var(--tl-color-brand); }
+
 /* ── Filter chips ──────────────────────────────── */
 
 .filter-group { width: 100%; margin-bottom: var(--tl-spacing-md); }
