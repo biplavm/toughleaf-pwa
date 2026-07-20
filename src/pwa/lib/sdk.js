@@ -2,9 +2,13 @@ import { createClient, USER_ME_KEY, PROJECTS_LIST_KEY } from '@toughleaf/platfor
 
 export { createClient, USER_ME_KEY, PROJECTS_LIST_KEY };
 
-const baseUrl = import.meta.env.VITE_PUBLIC_TOUGHLEAF_BACKEND
-  ? import.meta.env.VITE_PUBLIC_TOUGHLEAF_BACKEND + '/api/v1'
-  : (import.meta.env.VITE_TL_API_BASE ?? '/api/v1');
+const backendUrl = import.meta.env.VITE_PUBLIC_TOUGHLEAF_BACKEND
+  ?? import.meta.env.VITE_TL_API_BASE
+  ?? '';
+
+const baseUrl = backendUrl
+  ? (backendUrl.endsWith('/api/v1') ? backendUrl : backendUrl + '/api/v1')
+  : '/api/v1';
 
 export const client = createClient({ baseUrl });
 
