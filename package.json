@@ -1,31 +1,25 @@
 {
-  "name": "@toughleaf/sdk-studio",
+  "name": "@toughleaf/pwa",
   "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "Pure-JS studio for Platform SDK recipes — consumes the versioned browser bundle",
+  "description": "Tough Leaf PWA - companion app built on the Platform SDK",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
     "typecheck": "tsc -p tsconfig.json",
-    "vendor:sdk": "node scripts/vendor-sdk.mjs",
-    "test": "vitest run src scripts",
-    "test:e2e": "playwright test",
-    "preflight": "node scripts/preflight.mjs",
-    "release:check": "node scripts/check-release-tag.mjs"
+    "test": "vitest run src scripts"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
     "@lottiefiles/svelte-lottie-player": "^0.3.1",
-    "@playwright/test": "^1.53.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
     "svelte": "^4.2.20",
     "typescript": "^5.4.5",
     "vite": "^5.4.0",
-    "vite-plugin-pwa": "^0.20.5",
-    "vitest": "^1.6.0"
+    "vite-plugin-pwa": "^0.20.5"
   }
 }

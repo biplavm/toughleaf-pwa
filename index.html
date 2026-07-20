@@ -2,86 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Tough Leaf Platform SDK integration studio" />
-    <title>Tough Leaf SDK Studio</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="description" content="Tough Leaf — project and firm companion" />
+    <meta name="theme-color" content="#2491eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Tough Leaf" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>Tough Leaf</title>
   </head>
   <body>
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
-    <main class="shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Platform SDK · reference implementation</p>
-          <h1>GC project to outreach,<br /><span>through the public SDK.</span></h1>
-          <p class="subtitle">Observable Laravel requests, cache behavior, assertions, and cleanup in one workflow.</p>
-        </div>
-        <div class="release-card">
-          <span>Runtime bundle</span>
-          <strong id="sdk-version">loading…</strong>
-          <small>Checksum-verified vendor</small>
-        </div>
-      </header>
-
-      <section class="workspace">
-        <aside class="rail">
-          <div class="rail-section">
-            <p class="section-label">Verified journeys</p>
-            <button type="button" data-recipe="golden" class="journey active"><b>00</b><span>GC project to outreach<small>TL-876 / TL-878</small></span></button>
-            <button type="button" data-recipe="account" class="journey"><b>01</b><span>Account + company<small>TL-808</small></span></button>
-            <button type="button" data-recipe="invites" class="journey"><b>02</b><span>Team invites<small>TL-809</small></span></button>
-            <button type="button" data-recipe="projects" class="journey"><b>03</b><span>Project delivery<small>TL-810</small></span></button>
-          </div>
-
-          <form id="login-form" class="rail-section form-stack">
-            <div class="section-heading"><p class="section-label">Session</p><span id="session-status" data-state="signed-out">SIGNED_OUT</span></div>
-            <label>Email<input type="email" id="email" required autocomplete="username" placeholder="hello@toughleaf.com" /></label>
-            <label>Password<input type="password" id="password" required autocomplete="current-password" /></label>
-            <button class="button secondary" type="submit">Sign in</button>
-          </form>
-
-          <div class="rail-section form-stack">
-            <p class="section-label">Demo configuration</p>
-            <div class="two-fields">
-              <label>First name<input id="invite-first-name" value="SDK" /></label>
-              <label>Last name<input id="invite-last-name" value="Demo" /></label>
-            </div>
-            <label>Invite role ID<input id="role-id" type="number" min="1" placeholder="Required for TL-809" /></label>
-            <label>Workflow ULID<input id="workflow-id" placeholder="Required for TL-876" /></label>
-            <label>Firm name<input id="participant-company-name" placeholder="Exact name from search results" /></label>
-            <label>Search state<input id="search-state" maxlength="2" value="NY" /></label>
-            <div class="two-fields">
-              <label>Client ID<input id="client-id" type="number" min="1" placeholder="Admin only" /></label>
-              <label>Participant company<input id="participant-company-id" type="number" min="1" placeholder="Optional" /></label>
-            </div>
-          </div>
-        </aside>
-
-        <section class="canvas">
-          <div class="recipe-header">
-            <div><span id="recipe-ticket" class="ticket">TL-876 / TL-878</span><h2 id="recipe-title">GC project to outreach</h2><p id="recipe-desc"></p></div>
-            <button type="button" id="btn-run" class="button primary">Run journey</button>
-          </div>
-
-          <div class="panels">
-            <article class="panel result-panel">
-              <div class="panel-heading"><span>Journey result</span><small>assertions + cleanup</small></div>
-              <pre id="output">Sign in, configure the journey, then run it.</pre>
-            </article>
-            <article class="panel trace-panel">
-              <div class="panel-heading"><span>HTTP contract inspector</span><small>request · status · response · cache</small></div>
-              <ol id="trace-list" class="trace-list"></ol>
-            </article>
-          </div>
-
-          <article class="code-card">
-            <div class="panel-heading"><span>Portable TypeScript</span><a id="doc-link" href="#" target="_blank" rel="noopener">Open recipe ↗</a></div>
-            <pre id="recipe-code"></pre>
-          </article>
-        </section>
-      </section>
-    </main>
+    <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

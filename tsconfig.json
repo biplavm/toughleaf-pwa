@@ -15,6 +15,5 @@
       "@toughleaf/platform-sdk": ["./vendor/@toughleaf/platform-sdk/index.d.ts"]
     }
   },
-  "include": ["src"],
-  "exclude": ["src/pwa"]
+  "include": ["src"]
 }
