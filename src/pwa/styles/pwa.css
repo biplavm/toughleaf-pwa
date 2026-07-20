@@ -162,7 +162,7 @@ a:hover { text-decoration: underline; }
 .login-container { width: 100%; max-width: 360px; padding: var(--tl-spacing-xl); }
 
 .login-brand {
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   margin-bottom: var(--tl-spacing-2xl);
 }
 

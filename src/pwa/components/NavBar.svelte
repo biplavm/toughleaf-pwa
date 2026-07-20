@@ -92,9 +92,9 @@
 </aside>
 
 <style>
+  .sidebar-header { flex-direction: column; align-items: flex-start; gap: var(--tl-spacing-xs); }
   .sidebar-logo { height: 28px; width: auto; }
   .sidebar-tag {
-    margin-left: var(--tl-spacing-xs);
     padding: 2px var(--tl-spacing-xs);
     border-radius: var(--tl-border-radius-sm);
     background: var(--tl-color-neutral-100);
