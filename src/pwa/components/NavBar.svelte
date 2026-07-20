@@ -45,7 +45,8 @@
 
 <aside class="sidebar" class:open={sidebarOpen}>
   <div class="sidebar-header">
-    <img src="/images/logo-tl-dark.svg" alt="Tough Leaf" class="sidebar-logo" />
+    <img src="/images/logo-tl-dark.svg" alt="Tough Leaf Companion App" class="sidebar-logo" />
+    <span class="sidebar-tag">Companion App</span>
   </div>
 
   {#each navSections as section}
@@ -92,4 +93,16 @@
 
 <style>
   .sidebar-logo { height: 28px; width: auto; }
+  .sidebar-tag {
+    margin-left: var(--tl-spacing-xs);
+    padding: 2px var(--tl-spacing-xs);
+    border-radius: var(--tl-border-radius-sm);
+    background: var(--tl-color-neutral-100);
+    color: var(--tl-color-neutral-500);
+    font-size: var(--tl-font-size-xs);
+    font-weight: var(--tl-font-weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 </style>

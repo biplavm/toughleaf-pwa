@@ -15,7 +15,8 @@
 <div class="login-screen">
   <div class="login-container">
     <div class="login-brand">
-      <img src="/images/logo-tl-dark.svg" alt="Tough Leaf" class="login-logo" />
+      <img src="/images/logo-tl-dark.svg" alt="Tough Leaf Companion App" class="login-logo" />
+      <span class="login-tag">Companion App</span>
     </div>
 
     <h1 class="login-heading">Sign in</h1>
@@ -47,5 +48,17 @@
   .login-logo {
     height: 32px;
     width: auto;
+  }
+  .login-tag {
+    display: inline-block;
+    margin-top: var(--tl-spacing-sm);
+    padding: 2px var(--tl-spacing-xs);
+    border-radius: var(--tl-border-radius-sm);
+    background: var(--tl-color-neutral-100);
+    color: var(--tl-color-neutral-500);
+    font-size: var(--tl-font-size-xs);
+    font-weight: var(--tl-font-weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 </style>
