@@ -13,6 +13,7 @@
   export let companyId = null;
 
   let selections = { suggestionKeys: new Set(), projects: new Set(), contacts: new Set(), addresses: new Set() };
+  let selectionsInitialized = false;
   let applying = false;
   let error = '';
 
@@ -23,8 +24,13 @@
   $: companyName = state?.companyName ?? 'Unknown';
   $: sourceUrl = result?.sourceUrl ?? null;
 
-  $: if (show && result && selections.suggestionKeys.size === 0 && selections.projects.size === 0) {
+  $: if (show && result && !selectionsInitialized) {
     selections = defaultSelections(result);
+    selectionsInitialized = true;
+  }
+
+  $: if (!show) {
+    selectionsInitialized = false;
   }
 
   function toggleSuggestion(key) {
@@ -91,7 +97,6 @@
     try {
       await enrichmentStore.apply(companyId, selections);
       dispatch('applied', { companyId, appliedCount: selectedCount });
-      show = false;
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to apply suggestions';
     } finally {
@@ -104,11 +109,10 @@
       await enrichmentStore.dismiss(companyId);
       dispatch('dismissed', { companyId });
     } catch {}
-    show = false;
   }
 
   function handleClose() {
-    show = false;
+    dispatch('close');
   }
 
   $: totalSuggestions = (result?.suggestions?.length ?? 0) + (result?.keyProjects?.length ?? 0) + (result?.contacts?.length ?? 0) + (result?.addresses?.length ?? 0);
@@ -138,8 +142,10 @@
           <div class="suggestion-group-title">Company Details</div>
           {#each result.suggestions as s, i}
             {@const key = `suggestions:${i}`}
-            <label class="suggestion-item" class:selected={selections.suggestionKeys.has(key)}>
-              <input type="checkbox" checked={selections.suggestionKeys.has(key)} on:change={() => toggleSuggestion(key)} />
+            <div class="suggestion-item" class:selected={selections.suggestionKeys.has(key)}
+                 on:click={() => toggleSuggestion(key)} role="checkbox" aria-checked={selections.suggestionKeys.has(key)} tabindex="0"
+                 on:keydown={(e) => e.key === 'Enter' && toggleSuggestion(key)}>
+              <input type="checkbox" checked={selections.suggestionKeys.has(key)} on:click|stopPropagation={() => toggleSuggestion(key)} />
               <div class="suggestion-content">
                 <div class="suggestion-field">
                   <span class="suggestion-label">{s.label ?? s.field}</span>
@@ -151,7 +157,7 @@
                   <span class="suggestion-new">{displayValue(s.suggestedValue)}</span>
                 </div>
               </div>
-            </label>
+            </div>
           {/each}
         </div>
       {/if}
@@ -160,8 +166,10 @@
         <div class="suggestion-group">
           <div class="suggestion-group-title">Key Projects</div>
           {#each result.keyProjects as s, i}
-            <label class="suggestion-item" class:selected={selections.projects.has(i)}>
-              <input type="checkbox" checked={selections.projects.has(i)} on:change={() => toggleProject(i)} />
+            <div class="suggestion-item" class:selected={selections.projects.has(i)}
+                 on:click={() => toggleProject(i)} role="checkbox" aria-checked={selections.projects.has(i)} tabindex="0"
+                 on:keydown={(e) => e.key === 'Enter' && toggleProject(i)}>
+              <input type="checkbox" checked={selections.projects.has(i)} on:click|stopPropagation={() => toggleProject(i)} />
               <div class="suggestion-content">
                 <div class="suggestion-field">
                   <span class="suggestion-label">{s.label ?? s.field}</span>
@@ -173,7 +181,7 @@
                   <span class="suggestion-new">{displayValue(s.suggestedValue)}</span>
                 </div>
               </div>
-            </label>
+            </div>
           {/each}
         </div>
       {/if}
@@ -182,8 +190,10 @@
         <div class="suggestion-group">
           <div class="suggestion-group-title">Contacts</div>
           {#each result.contacts as s, i}
-            <label class="suggestion-item" class:selected={selections.contacts.has(i)}>
-              <input type="checkbox" checked={selections.contacts.has(i)} on:change={() => toggleContact(i)} />
+            <div class="suggestion-item" class:selected={selections.contacts.has(i)}
+                 on:click={() => toggleContact(i)} role="checkbox" aria-checked={selections.contacts.has(i)} tabindex="0"
+                 on:keydown={(e) => e.key === 'Enter' && toggleContact(i)}>
+              <input type="checkbox" checked={selections.contacts.has(i)} on:click|stopPropagation={() => toggleContact(i)} />
               <div class="suggestion-content">
                 <div class="suggestion-field">
                   <span class="suggestion-label">{s.label ?? s.field}</span>
@@ -195,7 +205,7 @@
                   <span class="suggestion-new">{displayValue(s.suggestedValue)}</span>
                 </div>
               </div>
-            </label>
+            </div>
           {/each}
         </div>
       {/if}
@@ -204,8 +214,10 @@
         <div class="suggestion-group">
           <div class="suggestion-group-title">Addresses</div>
           {#each result.addresses as s, i}
-            <label class="suggestion-item" class:selected={selections.addresses.has(i)}>
-              <input type="checkbox" checked={selections.addresses.has(i)} on:change={() => toggleAddress(i)} />
+            <div class="suggestion-item" class:selected={selections.addresses.has(i)}
+                 on:click={() => toggleAddress(i)} role="checkbox" aria-checked={selections.addresses.has(i)} tabindex="0"
+                 on:keydown={(e) => e.key === 'Enter' && toggleAddress(i)}>
+              <input type="checkbox" checked={selections.addresses.has(i)} on:click|stopPropagation={() => toggleAddress(i)} />
               <div class="suggestion-content">
                 <div class="suggestion-field">
                   <span class="suggestion-label">{s.label ?? s.field}</span>
@@ -217,7 +229,7 @@
                   <span class="suggestion-new">{displayValue(s.suggestedValue)}</span>
                 </div>
               </div>
-            </label>
+            </div>
           {/each}
         </div>
       {/if}
@@ -305,6 +317,9 @@
     cursor: pointer;
     transition: background 100ms;
   }
+  .suggestion-item:hover {
+    background: var(--tl-color-neutral-50);
+  }
   .suggestion-item.selected {
     background: var(--tl-color-neutral-50);
   }
@@ -314,6 +329,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
+    pointer-events: none;
   }
   .suggestion-content {
     flex: 1;

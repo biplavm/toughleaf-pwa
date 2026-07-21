@@ -13,12 +13,15 @@
   onDestroy(() => unsubEnrich());
 
   $: entries = Object.values(enrichStates).filter((s) =>
-    s.status !== 'idle' && s.status !== 'dismissed'
+    s.status !== 'idle'
   );
   $: activeCount = entries.filter((s) =>
     s.status === 'triggering' || s.status === 'polling' || s.status === 'queued'
   ).length;
   $: readyCount = entries.filter((s) => s.status === 'ready').length;
+  $: completedCount = entries.filter((s) =>
+    s.status === 'applied' || s.status === 'reviewed'
+  ).length;
   $: badgeCount = activeCount + readyCount;
 
   function togglePanel() {
@@ -96,7 +99,9 @@
                   {:else if entry.status === 'applying'}
                     <span>Applying...</span>
                   {:else if entry.status === 'applied'}
-                    <span class="notif-enrich-ready">Applied</span>
+                    <span class="notif-enrich-done">✓ Applied{#if entry.appliedCount} ({entry.appliedCount}){/if}</span>
+                  {:else if entry.status === 'reviewed'}
+                    <span class="notif-enrich-done">✓ Reviewed</span>
                   {/if}
                 </div>
               </div>
@@ -105,7 +110,7 @@
                   <button class="notif-action notif-action-primary" on:click={() => handleReview(entry.companyId)}>Review</button>
                 {:else if entry.status === 'failed'}
                   <button class="notif-action" on:click={() => handleRetry(entry.companyId)}>Retry</button>
-                {:else if entry.status === 'applied'}
+                {:else if entry.status === 'applied' || entry.status === 'reviewed'}
                   <button class="notif-action notif-action-muted" on:click={() => handleClear(entry.companyId)}>Clear</button>
                 {/if}
               </div>
@@ -235,6 +240,7 @@
 
   .notif-enrich-live { display: inline-flex; align-items: center; gap: 4px; }
   .notif-enrich-ready { color: #15803d; font-weight: var(--tl-font-weight-medium); }
+  .notif-enrich-done { color: var(--tl-color-neutral-400); }
   .notif-enrich-error { color: #dc2626; }
   .notif-dot {
     display: inline-block;

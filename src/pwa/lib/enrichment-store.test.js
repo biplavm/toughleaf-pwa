@@ -412,7 +412,7 @@ describe('enrichmentStore', () => {
     expect(enrichmentStore.getState(1).status).toBe('applied');
   });
 
-  it('dismiss calls API and resets to idle', async () => {
+  it('dismiss calls API and sets reviewed state', async () => {
     const result = makeResult();
     const api = createMockApi({
       queueEnrichment: vi.fn(async () => makeReadyPayload(result)),
@@ -425,7 +425,8 @@ describe('enrichmentStore', () => {
     await enrichmentStore.dismiss(1);
 
     expect(api.calls.dismiss.length).toBe(1);
-    expect(enrichmentStore.getState(1).status).toBe('dismissed');
+    expect(enrichmentStore.getState(1).status).toBe('reviewed');
+    expect(enrichmentStore.getState(1).reviewedAction).toBe('dismissed');
   });
 
   it('clear removes state and frees slot', async () => {

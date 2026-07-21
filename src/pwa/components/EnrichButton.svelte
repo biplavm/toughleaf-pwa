@@ -73,9 +73,14 @@
     <span class="enrich-spinner"></span> Applying...
   </span>
 {:else if state?.status === 'applied'}
-  <span class="enrich-applied">
+  <span class="enrich-done-tag">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-    Applied
+    Applied{#if state.appliedCount} ({state.appliedCount}){/if}
+  </span>
+{:else if state?.status === 'reviewed'}
+  <span class="enrich-done-tag enrich-done-muted">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Reviewed
   </span>
 {:else}
   <button class="enrich-btn enrich-btn-outline" on:click={handleTrigger} disabled={!canTrigger}
@@ -154,6 +159,18 @@
     font-size: var(--tl-font-size-xs);
     color: #15803d;
     font-weight: var(--tl-font-weight-semibold);
+  }
+  .enrich-done-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--tl-font-size-xs);
+    color: #15803d;
+    font-weight: var(--tl-font-weight-medium);
+    padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
+  }
+  .enrich-done-muted {
+    color: var(--tl-color-neutral-400);
   }
   .enrich-error {
     font-size: 11px;

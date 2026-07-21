@@ -5,6 +5,8 @@
   import { enrichmentStore, statusLabel } from '../lib/enrichment-store.js';
   import { actionRequiredSurveys, approachingDeadlines } from '../lib/reporting.js';
 
+  const CACHE_KEY = 'tl_notifications_cache';
+
   let loading = false;
   let loaded = false;
   let actionItems = [];
@@ -15,8 +17,29 @@
     enrichStates = states;
   });
 
+  function loadCachedNotifications() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return;
+      const cached = JSON.parse(raw);
+      if (cached.actionItems) actionItems = cached.actionItems;
+      if (cached.deadlines) deadlines = cached.deadlines;
+      if (actionItems.length > 0 || deadlines.length > 0) loaded = true;
+    } catch {}
+  }
+
+  function saveCachedNotifications() {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        actionItems: actionItems.slice(0, 20),
+        deadlines: deadlines.slice(0, 20),
+        savedAt: Date.now(),
+      }));
+    } catch {}
+  }
+
   async function loadNotifications() {
-    if (loaded || loading) return;
+    if (loading) return;
     loading = true;
     try {
       const projects = await client.projects.list(undefined, { staleTime: 60_000 });
@@ -29,25 +52,28 @@
       );
       const results = await Promise.all(surveyPromises);
       actionItems = actionRequiredSurveys(results.flat());
+      saveCachedNotifications();
     } catch {}
     loaded = true;
     loading = false;
   }
 
   onDestroy(() => unsubEnrich());
+  loadCachedNotifications();
   loadNotifications();
 
   $: enrichEntries = Object.values(enrichStates).filter((s) =>
-    s.status !== 'idle' && s.status !== 'dismissed'
+    s.status !== 'idle'
   );
   $: enrichActive = enrichEntries.filter((s) =>
     s.status === 'triggering' || s.status === 'polling' || s.status === 'queued'
   );
   $: enrichReady = enrichEntries.filter((s) => s.status === 'ready');
   $: enrichFailed = enrichEntries.filter((s) => s.status === 'failed');
+  $: enrichReviewed = enrichEntries.filter((s) => s.status === 'reviewed');
   $: enrichApplied = enrichEntries.filter((s) => s.status === 'applied' || s.status === 'applying');
 
-  $: totalCount = actionItems.length + deadlines.length + enrichEntries.length;
+  $: totalCount = actionItems.length + deadlines.length + enrichActive.length + enrichReady.length + enrichFailed.length + enrichReviewed.length + enrichApplied.length;
 
   function openProject(id) {
     navigate(`/projects?id=${id}`);
@@ -247,8 +273,8 @@
       </div>
     {/if}
 
-    {#if enrichApplied.length > 0}
-      <div class="detail-section-title">Completed Enrichments <span class="count">{enrichApplied.length}</span></div>
+    {#if enrichApplied.length > 0 || enrichReviewed.length > 0}
+      <div class="detail-section-title">Completed <span class="count">{enrichApplied.length + enrichReviewed.length}</span></div>
       <div class="detail-panel">
         <div class="notif-list-view">
           {#each enrichApplied as entry (entry.companyId)}
@@ -258,8 +284,10 @@
                 <div class="notif-card-meta">
                   {#if entry.status === 'applying'}
                     <span class="notif-tag-info">Applying suggestions...</span>
+                  {:else if entry.appliedCount}
+                    <span class="notif-tag-ready">✓ Applied {entry.appliedCount} suggestion{entry.appliedCount > 1 ? 's' : ''}</span>
                   {:else}
-                    <span class="notif-tag-ready">Applied</span>
+                    <span class="notif-tag-ready">✓ Applied</span>
                   {/if}
                 </div>
               </div>
@@ -268,6 +296,19 @@
                   <button class="btn btn-ghost btn-sm" on:click={() => handleClear(entry.companyId)}>Clear</button>
                 </div>
               {/if}
+            </div>
+          {/each}
+          {#each enrichReviewed as entry (entry.companyId)}
+            <div class="notif-card notif-card-reviewed">
+              <div class="notif-card-main">
+                <div class="notif-card-name">{entry.companyName ?? `Company ${entry.companyId}`}</div>
+                <div class="notif-card-meta">
+                  <span class="notif-tag-reviewed">✓ Reviewed {#if entry.reviewedAction === 'dismissed'}— dismissed{/if}</span>
+                </div>
+              </div>
+              <div class="notif-card-actions">
+                <button class="btn btn-ghost btn-sm" on:click={() => handleClear(entry.companyId)}>Clear</button>
+              </div>
             </div>
           {/each}
         </div>
@@ -351,6 +392,7 @@
   .notif-card-failed { background: #fef2f2; }
   .notif-card-failed:hover { background: #fee2e2; }
   .notif-card-applied { opacity: 0.75; }
+  .notif-card-reviewed { opacity: 0.6; }
 
   .notif-card-main { flex: 1; min-width: 0; }
   .notif-card-name {
@@ -376,6 +418,7 @@
   .notif-tag-overdue { color: #dc2626; font-weight: var(--tl-font-weight-medium); }
   .notif-tag-urgent { color: #b45309; font-weight: var(--tl-font-weight-medium); }
   .notif-tag-ready { color: #15803d; font-weight: var(--tl-font-weight-medium); }
+  .notif-tag-reviewed { color: var(--tl-color-neutral-500); font-weight: var(--tl-font-weight-medium); }
   .notif-tag-info { color: var(--tl-color-neutral-500); }
   .notif-tag-error { color: #dc2626; }
   .notif-tag-live {

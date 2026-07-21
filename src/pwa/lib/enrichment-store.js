@@ -67,13 +67,56 @@ function createInitialState(companyId) {
     pollRunId: 0,
     companyName: null,
     website: null,
+    appliedCount: null,
+    reviewedAction: null,
   };
+}
+
+const PERSIST_KEY = 'tl_enrichment_states';
+const PERSISTABLE_STATUSES = new Set(['ready', 'applied', 'failed', 'reviewed']);
+
+function persistStates() {
+  try {
+    const toSave = {};
+    for (const [id, state] of Object.entries(_states)) {
+      if (PERSISTABLE_STATUSES.has(state.status)) {
+        toSave[id] = {
+          companyId: state.companyId,
+          status: state.status,
+          serverStatus: state.serverStatus,
+          enrichmentId: state.enrichmentId,
+          result: state.result,
+          error: state.error,
+          companyName: state.companyName,
+          website: state.website,
+          appliedCount: state.appliedCount,
+          reviewedAction: state.reviewedAction,
+        };
+      }
+    }
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(toSave));
+  } catch {}
+}
+
+function loadPersistedStates() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    for (const [id, state] of Object.entries(saved)) {
+      if (state && PERSISTABLE_STATUSES.has(state.status)) {
+        _states[id] = { ...createInitialState(Number(id)), ...state };
+      }
+    }
+  } catch {}
 }
 
 const _states = {};
 const _subscribers = new Set();
 let _pollRunIdCounter = 0;
 let _api = enrichmentApi;
+
+loadPersistedStates();
 
 function notify() {
   _subscribers.forEach((fn) => fn(_states));
@@ -83,6 +126,7 @@ function setState(companyId, patch) {
   if (!_states[companyId]) _states[companyId] = createInitialState(companyId);
   Object.assign(_states[companyId], patch);
   notify();
+  persistStates();
 }
 
 function activeCount() {
@@ -328,13 +372,7 @@ export const enrichmentStore = {
     try {
       const payload = buildApplyPayload(state.result, selections);
       await _api.applyEnrichment(companyId, state.enrichmentId, payload);
-      setState(companyId, { status: 'applied' });
-      setTimeout(() => {
-        const s = _states[companyId];
-        if (s && s.status === 'applied') {
-          setState(companyId, { status: 'idle' });
-        }
-      }, 3000);
+      setState(companyId, { status: 'applied', appliedCount: countSelected(selections) });
     } catch (e) {
       setState(companyId, {
         status: 'failed',
@@ -351,14 +389,12 @@ export const enrichmentStore = {
       await _api.dismissEnrichment(companyId, state.enrichmentId);
     } catch {
     } finally {
-      setState(companyId, { status: 'dismissed' });
-      setTimeout(() => {
-        const s = _states[companyId];
-        if (s && s.status === 'dismissed') {
-          setState(companyId, { status: 'idle' });
-        }
-      }, 1000);
+      setState(companyId, { status: 'reviewed', reviewedAction: 'dismissed' });
     }
+  },
+
+  markReviewed(companyId, action = 'reviewed') {
+    setState(companyId, { status: 'reviewed', reviewedAction: action });
   },
 
   retry(companyId) {
@@ -382,6 +418,7 @@ export const enrichmentStore = {
       delete _states[companyId];
     }
     notify();
+    persistStates();
     processQueue();
   },
 

@@ -52,6 +52,7 @@
   let lookupView = 'search';
   let selectedCompany = null;
   let selectedCompanyData = null;
+  let showCompanyModal = false;
   let searchHistory = [];
   let activeSearch = null;
   let feedbackLoading = {};
@@ -141,8 +142,9 @@
   }
 
   async function openCompany(id) {
-    lookupView = 'company';
     selectedCompany = id;
+    selectedCompanyData = null;
+    showCompanyModal = true;
     try {
       selectedCompanyData = await client.companies.get(id);
     } catch (e) {
@@ -250,11 +252,13 @@
 
   function closeEnrichReview() {
     enrichReviewShow = false;
-    enrichReviewCompanyId = null;
+    if (window.location.hash.includes('?enrich=')) {
+      window.location.hash = '/lookup';
+    }
   }
 
   function closeCompany() {
-    lookupView = 'search';
+    showCompanyModal = false;
     selectedCompany = null;
     selectedCompanyData = null;
   }
@@ -279,93 +283,49 @@
 
   loadLookupData();
 
-  const hashEnrichMatch = window.location.hash.match(/[?&]enrich=([^&]+)/);
-  if (hashEnrichMatch) {
-    const enrichCompanyId = parseInt(hashEnrichMatch[1], 10);
-    if (!isNaN(enrichCompanyId)) {
-      const checkReady = setInterval(() => {
-        const state = enrichmentStore.getState(enrichCompanyId);
-        if (state?.status === 'ready') {
-          openEnrichReview(enrichCompanyId);
-          clearInterval(checkReady);
-        } else if (state?.status === 'idle' || state?.status === 'failed') {
-          clearInterval(checkReady);
-        }
-      }, 500);
-      setTimeout(() => clearInterval(checkReady), 10000);
-    }
+  let enrichCheckInterval = null;
+  let enrichCheckTimeout = null;
+
+  function checkEnrichParam() {
+    if (enrichCheckInterval) clearInterval(enrichCheckInterval);
+    if (enrichCheckTimeout) clearTimeout(enrichCheckTimeout);
+
+    const match = window.location.hash.match(/[?&]enrich=([^&]+)/);
+    if (!match) return;
+    const enrichCompanyId = parseInt(match[1], 10);
+    if (isNaN(enrichCompanyId)) return;
+
+    enrichCheckInterval = setInterval(() => {
+      const state = enrichmentStore.getState(enrichCompanyId);
+      if (state?.status === 'ready') {
+        openEnrichReview(enrichCompanyId);
+        clearInterval(enrichCheckInterval);
+        enrichCheckInterval = null;
+      } else if (state?.status === 'idle' || state?.status === 'failed' || state?.status === 'reviewed' || state?.status === 'applied') {
+        clearInterval(enrichCheckInterval);
+        enrichCheckInterval = null;
+      }
+    }, 500);
+    enrichCheckTimeout = setTimeout(() => {
+      if (enrichCheckInterval) {
+        clearInterval(enrichCheckInterval);
+        enrichCheckInterval = null;
+      }
+    }, 10000);
   }
+
+  checkEnrichParam();
+
+  window.addEventListener('hashchange', checkEnrichParam);
+
+  onDestroy(() => {
+    window.removeEventListener('hashchange', checkEnrichParam);
+    if (enrichCheckInterval) clearInterval(enrichCheckInterval);
+    if (enrichCheckTimeout) clearTimeout(enrichCheckTimeout);
+  });
 </script>
 
-{#if lookupView === 'company' && selectedCompanyData}
-  <div class="breadcrumb">
-    <button class="breadcrumb-item" on:click={closeCompany}>Firm Lookup</button>
-    <svg class="breadcrumb-sep" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-    <span class="breadcrumb-item active">{selectedCompanyData.company_name ?? 'Company'}</span>
-  </div>
-
-  <div class="detail-panel">
-    <div class="detail-panel-header">
-      <h2>{selectedCompanyData.company_name ?? 'Unknown'}</h2>
-      <span class="badge">ID {selectedCompanyData.id}</span>
-    </div>
-    <div class="detail-panel-body">
-      <dl class="detail-grid">
-        <dt>Company ID</dt><dd class="mono">{selectedCompanyData.id}</dd>
-        <dt>Type</dt><dd>{selectedCompanyData.company_type ?? '—'}</dd>
-        {#if selectedCompanyData.city || selectedCompanyData.state}
-          <dt>Location</dt><dd>{[selectedCompanyData.city, selectedCompanyData.state].filter(Boolean).join(', ')}</dd>
-        {/if}
-        {#if selectedCompanyData.phone}
-          <dt>Phone</dt><dd>{selectedCompanyData.phone}</dd>
-        {/if}
-        {#if selectedCompanyData.website}
-          <dt>Website</dt><dd><a href={selectedCompanyData.website} target="_blank" rel="noopener">{selectedCompanyData.website}</a></dd>
-        {/if}
-        {#if selectedCompanyData.revenue}
-          <dt>Revenue</dt><dd>{selectedCompanyData.revenue}</dd>
-        {/if}
-        {#if selectedCompanyData.employee_count}
-          <dt>Employees</dt><dd>{selectedCompanyData.employee_count}</dd>
-        {/if}
-      </dl>
-
-      {#if selectedCompanyData.capabilities?.length}
-        <div class="detail-section-title">Capabilities</div>
-        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
-          {#each selectedCompanyData.capabilities as cap}
-            <span class="tag-pill tag-pill-accent">{cap.name ?? cap}</span>
-          {/each}
-        </div>
-      {/if}
-
-      {#if selectedCompanyData.certifications?.length}
-        <div class="detail-section-title">Certifications</div>
-        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
-          {#each selectedCompanyData.certifications as cert}
-            <span class="tag-pill tag-pill-success">{cert.name ?? cert.agency ?? cert}</span>
-          {/each}
-        </div>
-      {/if}
-
-      {#if selectedCompanyData.commodity_codes?.length}
-        <div class="detail-section-title">Commodity Codes</div>
-        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
-          {#each selectedCompanyData.commodity_codes as cc}
-            <span class="tag-pill">{cc.code ?? cc.name ?? cc}</span>
-          {/each}
-        </div>
-      {/if}
-
-      {#if selectedCompanyData.about}
-        <div class="detail-section-title">About</div>
-        <p style="font-size:var(--tl-font-size-sm);color:var(--tl-color-text-on-surface);line-height:var(--tl-line-height-normal)">
-          {selectedCompanyData.about}
-        </p>
-      {/if}
-    </div>
-  </div>
-{:else if lookupView === 'search'}
+{#if lookupView === 'search'}
   <div style="display:flex;justify-content:flex-end;margin-bottom:var(--tl-spacing-md)">
     <button class="btn btn-secondary btn-sm" on:click={() => (showFilters = !showFilters)}>
       {showFilters ? 'Close' : 'Filters'}
@@ -683,7 +643,75 @@
   </svelte:fragment>
 </Modal>
 
-<EnrichReviewSheet show={enrichReviewShow} companyId={enrichReviewCompanyId} on:applied={closeEnrichReview} on:dismissed={closeEnrichReview} />
+<EnrichReviewSheet show={enrichReviewShow} companyId={enrichReviewCompanyId} on:applied={closeEnrichReview} on:dismissed={closeEnrichReview} on:close={closeEnrichReview} />
+
+<Modal show={showCompanyModal} title={selectedCompanyData?.company_name ?? 'Company'} on:close={closeCompany} maxWidth={600}>
+  {#if selectedCompanyData}
+    <div class="company-modal-body">
+      <dl class="detail-grid">
+        <dt>Company ID</dt><dd class="mono">{selectedCompanyData.id}</dd>
+        <dt>Type</dt><dd>{selectedCompanyData.company_type ?? '—'}</dd>
+        {#if selectedCompanyData.city || selectedCompanyData.state}
+          <dt>Location</dt><dd>{[selectedCompanyData.city, selectedCompanyData.state].filter(Boolean).join(', ')}</dd>
+        {/if}
+        {#if selectedCompanyData.phone}
+          <dt>Phone</dt><dd>{selectedCompanyData.phone}</dd>
+        {/if}
+        {#if selectedCompanyData.website}
+          <dt>Website</dt><dd><a href={selectedCompanyData.website} target="_blank" rel="noopener noreferrer">{selectedCompanyData.website}</a></dd>
+        {/if}
+        {#if selectedCompanyData.revenue}
+          <dt>Revenue</dt><dd>{selectedCompanyData.revenue}</dd>
+        {/if}
+        {#if selectedCompanyData.employee_count}
+          <dt>Employees</dt><dd>{selectedCompanyData.employee_count}</dd>
+        {/if}
+      </dl>
+
+      {#if selectedCompanyData.capabilities?.length}
+        <div class="detail-section-title">Capabilities</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
+          {#each selectedCompanyData.capabilities as cap}
+            <span class="tag-pill tag-pill-accent">{cap.name ?? cap}</span>
+          {/each}
+        </div>
+      {/if}
+
+      {#if selectedCompanyData.certifications?.length}
+        <div class="detail-section-title">Certifications</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
+          {#each selectedCompanyData.certifications as cert}
+            <span class="tag-pill tag-pill-success">{cert.name ?? cert.agency ?? cert}</span>
+          {/each}
+        </div>
+      {/if}
+
+      {#if selectedCompanyData.commodity_codes?.length}
+        <div class="detail-section-title">Commodity Codes</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--tl-spacing-xs)">
+          {#each selectedCompanyData.commodity_codes as cc}
+            <span class="tag-pill">{cc.code ?? cc.name ?? cc}</span>
+          {/each}
+        </div>
+      {/if}
+
+      {#if selectedCompanyData.about}
+        <div class="detail-section-title">About</div>
+        <p style="font-size:var(--tl-font-size-sm);color:var(--tl-color-text-on-surface);line-height:var(--tl-line-height-normal)">
+          {selectedCompanyData.about}
+        </p>
+      {/if}
+    </div>
+  {:else}
+    <div class="company-modal-loading">
+      <span class="notif-loading-spinner"></span> Loading company...
+    </div>
+  {/if}
+
+  <svelte:fragment slot="footer">
+    <button class="btn btn-primary btn-sm" on:click={closeCompany}>Close</button>
+  </svelte:fragment>
+</Modal>
 
 <style>
   .outreach-loading-bar {
@@ -750,4 +778,29 @@
   .enrich-btn-primary:hover {
     background: #1a7dd4;
   }
+
+  .company-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tl-spacing-md);
+  }
+  .company-modal-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--tl-spacing-xs);
+    padding: var(--tl-spacing-xl) 0;
+    justify-content: center;
+    font-size: var(--tl-font-size-sm);
+    color: var(--tl-color-neutral-500);
+  }
+  .notif-loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--tl-color-neutral-200);
+    border-top-color: var(--tl-color-brand, #2491eb);
+    border-radius: 50%;
+    animation: notif-spin 0.8s linear infinite;
+  }
+  @keyframes notif-spin { to { transform: rotate(360deg); } }
 </style>
