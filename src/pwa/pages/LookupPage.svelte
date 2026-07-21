@@ -278,6 +278,23 @@
   }
 
   loadLookupData();
+
+  const hashEnrichMatch = window.location.hash.match(/[?&]enrich=([^&]+)/);
+  if (hashEnrichMatch) {
+    const enrichCompanyId = parseInt(hashEnrichMatch[1], 10);
+    if (!isNaN(enrichCompanyId)) {
+      const checkReady = setInterval(() => {
+        const state = enrichmentStore.getState(enrichCompanyId);
+        if (state?.status === 'ready') {
+          openEnrichReview(enrichCompanyId);
+          clearInterval(checkReady);
+        } else if (state?.status === 'idle' || state?.status === 'failed') {
+          clearInterval(checkReady);
+        }
+      }, 500);
+      setTimeout(() => clearInterval(checkReady), 10000);
+    }
+  }
 </script>
 
 {#if lookupView === 'company' && selectedCompanyData}

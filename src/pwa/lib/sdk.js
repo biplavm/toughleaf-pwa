@@ -7,7 +7,7 @@ const backendUrl = import.meta.env.VITE_PUBLIC_TOUGHLEAF_BACKEND
   ?? '';
 
 const baseUrl = backendUrl
-  ? (backendUrl.endsWith('/api/v1') ? backendUrl : backendUrl + '/api/v1')
+  ? (backendUrl.startsWith('http') ? (backendUrl.endsWith('/api/v1') ? backendUrl : backendUrl + '/api/v1') : `https://${backendUrl}`.replace(/\/api\/v1.*$/, '/api/v1'))
   : '/api/v1';
 
 export const client = createClient({ baseUrl });

@@ -5,6 +5,7 @@
   import NavBar from './components/NavBar.svelte';
   import InstallBanner from './components/InstallBanner.svelte';
   import LoginView from './components/LoginView.svelte';
+  import EnrichNotifications from './components/EnrichNotifications.svelte';
   import DashboardPage from './pages/DashboardPage.svelte';
   import OutreachPage from './pages/OutreachPage.svelte';
   import ActionRequiredPage from './pages/ActionRequiredPage.svelte';
@@ -85,6 +86,7 @@
           {#if !$online}
             <span class="offline-pill">Offline</span>
           {/if}
+          <EnrichNotifications />
         </div>
       </header>
 
