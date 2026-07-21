@@ -1,10 +1,14 @@
 <script>
+  import { onDestroy } from 'svelte';
   import { client } from '../lib/sdk.js';
   import { buildOutreachContext, outreachBadge } from '../lib/reporting.js';
+  import { enrichmentStore } from '../lib/enrichment-store.js';
   import LogoLoader from '../components/LogoLoader.svelte';
   import SkeletonList from '../components/skeleton/SkeletonList.svelte';
   import SkeletonTable from '../components/skeleton/SkeletonTable.svelte';
   import Modal from '../components/Modal.svelte';
+  import EnrichButton from '../components/EnrichButton.svelte';
+  import EnrichReviewSheet from '../components/EnrichReviewSheet.svelte';
 
   let keyword = '';
   let state = '';
@@ -63,6 +67,10 @@
   let addToProjectLoading = false;
   let addToProjectError = '';
   let addToProjectSuccess = '';
+
+  let enrichReviewCompanyId = null;
+  let enrichReviewShow = false;
+  let enrichStates = {};
 
   async function loadLookupData() {
     try {
@@ -227,6 +235,22 @@
     addToProjectSelected = null;
     addToProjectError = '';
     addToProjectSuccess = '';
+  }
+
+  const unsubEnrich = enrichmentStore.subscribe((states) => {
+    enrichStates = states;
+  });
+
+  onDestroy(() => unsubEnrich());
+
+  function openEnrichReview(companyId) {
+    enrichReviewCompanyId = companyId;
+    enrichReviewShow = true;
+  }
+
+  function closeEnrichReview() {
+    enrichReviewShow = false;
+    enrichReviewCompanyId = null;
   }
 
   function closeCompany() {
@@ -529,10 +553,11 @@
     {:else}
     <div class="detail-panel">
       <table class="data-table">
-        <thead><tr><th>Company Name</th><th>Outreach</th><th style="text-align:right">Actions</th></tr></thead>
+        <thead><tr><th>Company Name</th><th>Outreach</th><th>Enrich</th><th style="text-align:right">Actions</th></tr></thead>
         <tbody>
           {#each visibleResults as company}
             {@const badge = badgeForCompany(company.id)}
+            {@const enrichState = enrichStates[company.id]}
             <tr>
               <td class="primary" style="cursor:pointer" on:click={() => openCompany(company.id)}>{company.company_name ?? 'Unknown'}</td>
               <td class="secondary">
@@ -540,6 +565,13 @@
                   <span class="badge badge-{badge.tone === 'success' ? 'success' : badge.tone === 'accent' ? 'accent' : ''}">{badge.label}</span>
                 {:else}
                   <span class="badge">—</span>
+                {/if}
+              </td>
+              <td>
+                {#if enrichState?.status === 'ready'}
+                  <button class="enrich-btn enrich-btn-primary" on:click={() => openEnrichReview(company.id)}>Review</button>
+                {:else}
+                  <EnrichButton companyId={company.id} companyName={company.company_name} website={company.website} />
                 {/if}
               </td>
               <td style="text-align:right;white-space:nowrap">
@@ -562,6 +594,7 @@
       <div class="list-view">
         {#each visibleResults as company}
           {@const badge = badgeForCompany(company.id)}
+          {@const enrichState = enrichStates[company.id]}
           <div class="list-item">
             <div class="list-item-main" style="cursor:pointer" on:click={() => openCompany(company.id)} role="button" tabindex="0"
                  on:keydown={(e) => e.key === 'Enter' && openCompany(company.id)}>
@@ -572,6 +605,11 @@
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:var(--tl-spacing-xs);align-items:flex-end">
+              {#if enrichState?.status === 'ready'}
+                <button class="enrich-btn enrich-btn-primary" on:click={() => openEnrichReview(company.id)}>Review</button>
+              {:else}
+                <EnrichButton companyId={company.id} companyName={company.company_name} website={company.website} />
+              {/if}
               <button class="btn btn-ghost btn-sm" on:click={() => openAddToProject(company)}>Add to project</button>
               {#if isExcluded(company.id)}
                 <button class="btn btn-ghost btn-sm" on:click={() => markFeedback(company.id, 0)} disabled={feedbackLoading[company.id]}>
@@ -628,6 +666,8 @@
   </svelte:fragment>
 </Modal>
 
+<EnrichReviewSheet show={enrichReviewShow} companyId={enrichReviewCompanyId} on:applied={closeEnrichReview} on:dismissed={closeEnrichReview} />
+
 <style>
   .outreach-loading-bar {
     padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
@@ -671,5 +711,26 @@
     border-radius: var(--tl-border-radius-md);
     color: #15803d;
     font-size: var(--tl-font-size-sm);
+  }
+
+  .enrich-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
+    border: var(--tl-border-width-thin) solid transparent;
+    border-radius: var(--tl-border-radius-lg);
+    font-size: var(--tl-font-size-xs);
+    font-weight: var(--tl-font-weight-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 32px;
+  }
+  .enrich-btn-primary {
+    background: var(--tl-color-brand, #2491eb);
+    color: #fff;
+  }
+  .enrich-btn-primary:hover {
+    background: #1a7dd4;
   }
 </style>

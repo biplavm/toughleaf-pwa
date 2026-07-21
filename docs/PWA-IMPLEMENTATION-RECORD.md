@@ -54,6 +54,11 @@ The repository began life as **Tough Leaf SDK Studio** — a workflow-first refe
 | `fb4aee9` | fix: create proper 192x192 and 512x512 icons, add display_override for fullscreen |
 | `2990083` | feat: add Companion App tag to UI branding |
 | `e4cc380` | feat: use OAuth logo as app icon, stack Companion App tag under logo |
+| `103c316` | feat: Phase 1 reporting — audit-ready checklist, outreach funnel, goal-vs-actual, participation breakdown |
+| `9ffab31` | feat: Phase 2 — Reports route with cross-project metrics, progressive loading |
+| `7ea89df` | chore: enable PWA dev mode so manifest/SW are available during development |
+| `3d6f609` | feat: Phase 3 — enhanced firm lookup with outreach context, project status timeline |
+| `143b2fb` | feat: rebuild dashboard with action-required, deadlines, project deep-links |
 
 ---
 
@@ -73,7 +78,7 @@ new App({ target: document.getElementById('app') });
 ### App shell (`src/pwa/App.svelte`)
 
 - Gatekecks on `client.session` — shows `LoginView` when unauthenticated, the app shell otherwise.
-- Hash-based router (`src/pwa/lib/router.js`) with eight routes.
+- Hash-based router (`src/pwa/lib/router.js`) with nine routes.
 - Responsive sidebar (`NavBar.svelte`) with a mobile overlay toggle.
 - Topbar with an offline pill bound to the `online` store.
 - `InstallBanner` shown only when a `beforeinstallprompt` event has been captured and the app is not already standalone.
@@ -102,11 +107,12 @@ Lightweight hash router — no framework dependency. `navigate(hash)` sets `wind
 
 | Route | Component | Purpose |
 |---|---|---|
-| `/dashboard` | `DashboardPage.svelte` | Overview of projects, actions, and outreach status. |
+| `/dashboard` | `DashboardPage.svelte` | Action-required queue, approaching deadlines, recent projects with deep-links, recent searches. |
 | `/outreach` | `OutreachPage.svelte` | Outreach hub — surveys and workflow state per project. |
 | `/actions` | `ActionRequiredPage.svelte` | Action-required queue (notifications, pending items). |
-| `/projects` | `ProjectsPage.svelte` | Project list and detail with participants, surveys, bid packages. |
-| `/lookup` | `LookupPage.svelte` | Firm/company search with filters (states, certs, capabilities, etc.). |
+| `/projects` | `ProjectsPage.svelte` | Project list and detail with participants, surveys, bid packages. Detail has Overview and Report tabs. Deep-links via `?id=`. |
+| `/lookup` | `LookupPage.svelte` | Firm/company search with filters. Results show outreach-context badges and an Add to Project action. |
+| `/reports` | `ReportsPage.svelte` | Cross-project metrics: active projects, firms engaged, awarded dollars, diverse share, outreach distribution, deadlines, goals at risk. Progressive loading. |
 | `/invites` | `InvitesPage.svelte` | Team invite lifecycle: list, create, resend, delete. |
 | `/profile` | `ProfilePage.svelte` | User profile, name edit, password change, notification prefs. |
 | `/settings` | `SettingsPage.svelte` | App settings. |
@@ -117,12 +123,79 @@ Each page calls the SDK client directly and uses the skeleton components for loa
 
 ## Components (`src/pwa/components/`)
 
-- `NavBar.svelte` — collapsible sidebar with sectioned nav, user footer, and the Tough Leaf logo + **Companion App** tag.
+- `NavBar.svelte` — collapsible sidebar with sectioned nav (Overview, Workspace, Reporting, Account), user footer, and the Tough Leaf logo + **Companion App** tag.
 - `LoginView.svelte` — centered login card with logo, **Companion App** tag, and credential form.
 - `InstallBanner.svelte` — bottom banner prompting install when the deferred prompt is available.
-- `Modal.svelte` — generic modal wrapper.
+- `Modal.svelte` — generic modal wrapper with focus trap and named `footer` slot.
+- `ProjectReport.svelte` — reporting surface for a single project: compliance checklist, participation goal, outreach funnel, project timeline, participation-by-certification breakdown. Rendered in the Report tab of `ProjectsPage`.
 - `LogoLoader.svelte` — Lottie-backed loading animation.
 - `skeleton/` — `Skeleton`, `SkeletonCard`, `SkeletonDetail`, `SkeletonList`, `SkeletonTable`, `SkeletonText` for loading placeholders.
+
+---
+
+## Reporting layer
+
+The PWA's reporting layer turns outreach state into proof — computed entirely client-side from data the SDK already exposes. No new API endpoints, no backend changes.
+
+### Computation library (`src/pwa/lib/reporting.js`)
+
+Pure functions — data in, metrics out. No SDK calls, no side effects. Every function is fixture-tested in `reporting.test.js` (58 tests).
+
+| Function | Input | Output | Used by |
+|---|---|---|---|
+| `auditReady(project, participants, surveys)` | A single project's full data | Weighted checklist with critical/non-critical items, `criticalMissing` count, `passed` flag | `ProjectReport.svelte` |
+| `outreachFunnel(surveys)` | A project's survey list | 5-stage counts (invited → viewed → interested → submitted → awarded), conversion rates, surveys grouped by stage | `ProjectReport.svelte` |
+| `goalVsActual(project, surveys)` | A project + its surveys | Parses `req_participation`, computes actual diverse % from awarded amounts. Honest `null` when goal is unparseable or no awards exist. | `ProjectReport.svelte`, `crossProjectMetrics` |
+| `participationBreakdown(participants, surveys, project)` | Participants + surveys + project | Firms grouped by certification type, awarded counts, required-cert gaps | `ProjectReport.svelte` |
+| `projectTimeline(project)` | A project | Lifecycle stages (reached/current/future), milestones from project + bid-package date fields, overdue flags | `ProjectReport.svelte` |
+| `crossProjectMetrics(projectResults[])` | Array of `{ project, participants, surveys }` | Active project count, deduplicated firm count, awarded dollars, diverse share %, outreach status distribution, goals at risk, approaching-deadline buckets | `ReportsPage.svelte` |
+| `buildOutreachContext(allSurveys)` | Flat array of all surveys across projects | `Map<companyId, { invitedCount, awardedCount, contacted, projectIds }>` | `LookupPage.svelte` |
+| `outreachBadge(context, companyId)` | Context map + company ID | `{ label, tone }` — "Awarded on 1 project" / "Invited to 2 projects" / "Never contacted" | `LookupPage.svelte` |
+| `actionRequiredSurveys(surveysWithProjects)` | Surveys tagged with project name/ID | Sorted list of surveys needing action, with due date, overdue flag, company/project names | `DashboardPage.svelte` |
+| `approachingDeadlines(projects, days)` | Project list + day window | Projects with `bid_due_date` within the window, sorted by days left | `DashboardPage.svelte`, `ReportsPage.svelte` |
+
+### Design decisions
+
+- **No traffic-light on goal-vs-actual.** `req_participation` is a free-text string. The computation shows the raw goal string alongside the computed actual, and returns `null` when the goal can't be parsed or no awards exist — rather than asserting a green/yellow/red state on a brittle parse. Structuring this field is a loud SDK v0.5.0 ask.
+- **Critical vs non-critical audit items.** `auditReady` distinguishes critical failures (no participants, no diverse firms, outreach not started, awards undocumented) from non-critical ones (outreach completion undocumented, certification gaps). A project "passes" only if zero critical items fail — a weighted score, not a rigid binary.
+- **Progressive loading.** `ReportsPage` and `DashboardPage` load the project list first, then fetch per-project detail sequentially. Summary cards and deadlines appear immediately; heavier metrics (awards, goals at risk, action items) fill in as each project's data arrives. A progress indicator shows "N of M projects loaded."
+- **Deep-linking.** The dashboard and reports pages navigate to `/projects?id=123`. `ProjectsPage.loadProjects()` reads the `?id=` query param and auto-opens that project, bypassing the list view.
+- **Outreach context is opt-in.** `LookupPage` only builds the outreach context map after search results are returned — it doesn't preload all surveys on page mount. The "Only show firms not yet contacted" filter operates on the built context.
+
+### Reports route (`/reports`)
+
+Dedicated route under the "Reporting" nav section. Keeps the dashboard operational and isolates heavier cross-project computation to a surface the user opts into (avoids N+1 on the launch screen).
+
+Sections:
+1. **Summary cards** — Active Projects, Firms Engaged (deduplicated by `company_id`), Total Awarded ($), Diverse Share (%)
+2. **Outreach Status Distribution** — bar chart of bid packages by status (Not Started, Filling Package, In Progress, Closed)
+3. **Approaching Deadlines** — 7/14/30-day toggle, table + list with days remaining
+4. **Goals at Risk** — projects where computed diverse % is below the parsed goal, showing the gap
+
+Honest empty states: "No awards recorded yet", "No goals at risk" (with explanation of what qualifies), "No deadlines in the next N days".
+
+### Project Report tab
+
+The project detail view has two tabs: **Overview** (operational — bid packages, participants, surveys) and **Report** (proof — rendered by `ProjectReport.svelte`). This separates "work it" from "prove it."
+
+The Report tab shows:
+1. **Compliance Checklist** — audit-ready badge + line-by-line checklist with critical tags
+2. **Participation Goal** — raw goal string, parsed target, computed actual, awarded dollar breakdown
+3. **Outreach Funnel** — horizontal track+bar chart with gradient blues and conversion rates
+4. **Project Timeline** — lifecycle stage progression with reached/current/future states + key date milestones
+5. **Participation by Certification** — cards per cert type with firm counts, awarded counts, required-cert gaps
+
+### Enhanced Firm Lookup
+
+`LookupPage` adds outreach context to search results:
+- After results load, the page fetches all project surveys and builds an outreach context map via `buildOutreachContext()`
+- Each result shows a badge: "Awarded on N projects" (green), "Invited to N projects" (blue), "Never contacted" (muted)
+- "Only show firms not yet contacted" checkbox filters to firms with no outreach history
+- "Add to project" button opens a modal with a project picker; calls `client.projects.addParticipants()` and updates the badge in place
+
+### Dashboard
+
+The dashboard is the launch screen — operational, not reporting-heavy. Three stat cards (Active Projects, Action Required, Due <14 Days) link to their respective routes. An Action Required section shows the top 8 surveys needing attention, sorted by due date, each tappable to deep-link to the project. An Approaching Deadlines section shows projects due within 14 days. Recent Projects rows deep-link to specific projects via `?id=`.
 
 ---
 
@@ -156,6 +229,10 @@ A single `StaleWhileRevalidate` rule for `/api/v1/(?!auth/)` with cache name `tl
 ### SPA fallback
 
 `workbox.navigateFallback: '/index.html'` ensures deep links resolve to the app shell. `vercel.json` mirrors this with SPA rewrites for production hosting.
+
+### Dev mode
+
+`devOptions.enabled = true` generates the manifest and a dev service worker during `npm run dev`, so installability and icon behavior can be verified without a production build. Dev SW artifacts are written to `dev-dist/` (gitignored).
 
 ---
 
@@ -213,7 +290,9 @@ npm run typecheck
 npm test        # vitest, src and scripts
 ```
 
-Build output: `dist/` with hashed JS/CSS, `manifest.webmanifest`, `sw.js`, and `workbox-*.js`. The PWA plugin precaches ~14 entries (~360 KiB).
+Build output: `dist/` with hashed JS/CSS, `manifest.webmanifest`, `sw.js`, and `workbox-*.js`. The PWA plugin precaches ~14 entries (~440 KiB).
+
+Tests: `npx vitest run src/pwa/lib/reporting.test.js` — 58 fixture-based tests covering all computation functions and edge cases (empty inputs, unparseable goals, priority ordering, dedup, partial loads, overdue detection, badge pluralization).
 
 ---
 
@@ -221,7 +300,7 @@ Build output: `dist/` with hashed JS/CSS, `manifest.webmanifest`, `sw.js`, and `
 
 ```
 index.html                      # app shell, favicon + meta tags
-vite.config.ts                  # Svelte + PWA plugin, manifest, workbox, dev proxy
+vite.config.ts                  # Svelte + PWA plugin, manifest, workbox, dev proxy, devOptions
 vercel.json                     # SPA rewrites for production
 public/
   icons/
@@ -233,18 +312,20 @@ public/
 src/
   main.js                       # mounts App.svelte
   pwa/
-    App.svelte                  # session gate, router, app shell
-    components/                 # NavBar, LoginView, InstallBanner, Modal, LogoLoader, skeleton/
+    App.svelte                  # session gate, router, app shell (9 routes)
+    components/                 # NavBar, LoginView, InstallBanner, Modal, ProjectReport, LogoLoader, skeleton/
     lib/
       sdk.js                    # SDK client, session restore, user resource store
-      router.js                 # hash router
+      router.js                 # hash router (supports ?id= deep-links)
       stores.js                 # online, isStandalone, deferred install prompt
-    pages/                      # 8 page components (see Pages table)
+      reporting.js              # pure computation functions (10 exports)
+      reporting.test.js         # 58 fixture-based tests
+    pages/                      # 9 page components (see Pages table)
     styles/
       tokens.css                # Tough Leaf design tokens
       pwa.css                   # component styles
 vendor/@toughleaf/platform-sdk/ # vendored, checksum-verified SDK bundle
-docs/                           # implementation plan, onboarding, walkthrough
+docs/                           # implementation plan, onboarding, walkthrough, this record
 ```
 
 ---
@@ -256,7 +337,21 @@ The SDK Studio refactor (`cf680ea`) removed:
 - The four interactive Studio journeys (TL-808, TL-809, TL-810, TL-878).
 - The Playwright E2E suite and `@playwright/test` dependency.
 - The `starter/` standalone app.
-- The `vitest` dev dependency and Studio-specific test scripts.
 - The `STUDIO_API_BASE` config in favor of the PWA's `VITE_PUBLIC_TOUGHLEAF_BACKEND` / `VITE_TL_API_BASE` knobs.
 
-The `package-lock.json` was cleaned up in the final commit to drop the stale vitest/playwright transitive dependencies.
+The `package-lock.json` was cleaned up in the icon commit to drop the stale vitest/playwright transitive dependencies. `vitest` was subsequently reinstalled as a dev dependency to run the reporting computation tests.
+
+---
+
+## What's NOT built yet
+
+Features that require SDK expansions or backend changes — documented for the next phase:
+
+| SDK endpoint needed | Feature it unlocks | Priority |
+|---|---|---|
+| `GET /projects/{id}/logs` | Outreach effort log (GFE documentation) | Highest — the #1 compliance artifact |
+| `GET /projects/surveys` | Cross-project survey view with workflow status groups | High — enables portfolio-level outreach monitoring |
+| `POST /shareable/project/{id}` | Shareable project links for owners/agencies | High — frictionless compliance submission |
+| `POST /files` + `GET /files/{id}` | Photo/document upload for field evidence capture | Medium — completes the "in-the-field" value prop |
+| `BidPackageData.summary` passthrough | Pre-aggregated outreach counts (faster mobile load) | Medium — performance optimization |
+| Structured `req_participation` field | Reliable goal-vs-actual traffic-light | Medium — removes the brittle free-text parse |
