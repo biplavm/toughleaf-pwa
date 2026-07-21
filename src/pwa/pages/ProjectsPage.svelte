@@ -1,10 +1,15 @@
 <script>
   import { client } from '../lib/sdk.js';
   import { auditReady } from '../lib/reporting.js';
+  import { isSourcingProject, hasRequiredCapabilities } from '../lib/sourcing.js';
+  import { samStore } from '../lib/sam-store.js';
   import SkeletonTable from '../components/skeleton/SkeletonTable.svelte';
   import SkeletonDetail from '../components/skeleton/SkeletonDetail.svelte';
   import SkeletonList from '../components/skeleton/SkeletonList.svelte';
   import ProjectReport from '../components/ProjectReport.svelte';
+  import SuggestedFirmsView from '../components/SuggestedFirmsView.svelte';
+  import SamAgentView from '../components/SamAgentView.svelte';
+  import Modal from '../components/Modal.svelte';
 
   let view = 'list';
   let projects = [];
@@ -23,6 +28,8 @@
   let bidPackageData = null;
   let bidPackageLoading = false;
   let bidPackageSearch = '';
+  let showSuggestedFirms = false;
+  let showSamAgent = false;
 
   async function loadProjects() {
     loading = true;
@@ -129,6 +136,7 @@
   }
 
   function projectAuditBadge(p) {
+    if (isSourcingProject(p)) return { label: 'Sourcing', tone: 'sourcing' };
     const pkgs = Array.isArray(p?.bid_packages) ? p.bid_packages : [];
     if (pkgs.length === 0) return { label: 'No packages', tone: 'muted' };
     const reqTypes = Array.isArray(p?.req_certification_types) ? p.req_certification_types : [];
@@ -201,7 +209,7 @@
                 <td class="secondary">{project.project_type ?? '—'}</td>
                 <td class="secondary mono">{formatDate(project.bid_due_date)}</td>
                 <td>{#if project.state}<span class="badge">{project.state}</span>{:else}—{/if}</td>
-                <td><span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : ''}">{badge.label}</span></td>
+                <td><span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : badge.tone === 'sourcing' ? 'sourcing' : ''}">{badge.label}</span></td>
               </tr>
             {/each}
           </tbody>
@@ -217,7 +225,7 @@
                 <div class="list-item-meta">
                   <span>{project.project_type ?? '—'}</span>
                   {#if project.bid_due_date}<span>Due {formatDate(project.bid_due_date)}</span>{/if}
-                  <span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : ''}">{badge.label}</span>
+                  <span class="badge badge-{badge.tone === 'warn' ? 'warning' : badge.tone === 'info' ? 'accent' : badge.tone === 'sourcing' ? 'sourcing' : ''}">{badge.label}</span>
                 </div>
               </div>
               {#if project.state}<span class="badge">{project.state}</span>{/if}
@@ -269,6 +277,17 @@
         </dl>
       </div>
     </div>
+
+    {#if projectData.status === 'self_service'}
+      <div class="sam-callout">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+        <div class="sam-callout-main">
+          <div class="sam-callout-title">SAM Sourcing Agent</div>
+          <div class="sam-callout-desc">Trigger AI to source firms for this project's bid packages.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" on:click={() => { samStore.loadRuns(); showSamAgent = true; }}>Run SAM</button>
+      </div>
+    {/if}
 
     {#if projectData.bid_packages?.length}
       <div class="detail-section-title">Bid Packages <span class="count">({filteredBidPackages.length})</span></div>
@@ -389,6 +408,10 @@
 
     <p class="muted-note">Editing and advanced actions are available on the desktop application.</p>
     {/if}
+
+    <Modal show={showSamAgent} title="SAM Sourcing Agent" on:close={() => (showSamAgent = false)} maxWidth={700}>
+      <SamAgentView project={projectData} on:close={() => (showSamAgent = false)} />
+    </Modal>
   {/if}
 
 {:else if view === 'bidPackage'}
@@ -431,5 +454,25 @@
         </dl>
       </div>
     </div>
+
+    {#if hasRequiredCapabilities(bidPackageData)}
+      <div class="sourcing-callout">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+        <div class="sourcing-callout-main">
+          <div class="sourcing-callout-title">Quick Suggestions Available</div>
+          <div class="sourcing-callout-desc">AI-matched firms based on package capabilities. Tap to review and add.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" on:click={() => (showSuggestedFirms = true)}>Suggested Firms</button>
+      </div>
+    {/if}
+
+    <Modal show={showSuggestedFirms} title="Quick Suggestions" on:close={() => (showSuggestedFirms = false)} maxWidth={700}>
+      <SuggestedFirmsView
+        project={projectData}
+        bidPackage={bidPackageData}
+        participants={participants}
+        on:close={() => (showSuggestedFirms = false)}
+      />
+    </Modal>
   {/if}
 {/if}
