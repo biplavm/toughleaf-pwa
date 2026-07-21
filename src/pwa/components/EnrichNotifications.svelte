@@ -6,11 +6,11 @@
   let open = false;
   let enrichStates = {};
 
-  const unsub = enrichmentStore.subscribe((states) => {
+  const unsubEnrich = enrichmentStore.subscribe((states) => {
     enrichStates = states;
   });
 
-  onDestroy(() => unsub());
+  onDestroy(() => unsubEnrich());
 
   $: entries = Object.values(enrichStates).filter((s) =>
     s.status !== 'idle' && s.status !== 'dismissed'
@@ -42,89 +42,85 @@
     enrichmentStore.clear(companyId);
   }
 
-  function statusTone(status) {
-    if (status === 'ready') return 'success';
-    if (status === 'failed') return 'error';
-    if (status === 'applied') return 'success';
-    return 'info';
+  function viewAll() {
+    navigate('/notifications');
+    closePanel();
   }
 </script>
 
-<div class="enrich-notifications">
-  <button class="enrich-bell" on:click={togglePanel} aria-label="Enrichment notifications" aria-expanded={open}>
+<div class="notif-drawer">
+  <button class="notif-bell" on:click={togglePanel} aria-label="Enrichment notifications" aria-expanded={open}>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
     </svg>
     {#if badgeCount > 0}
-      <span class="enrich-badge" class:ready={readyCount > 0 && activeCount === 0}>{badgeCount}</span>
+      <span class="notif-badge" class:ready={readyCount > 0 && activeCount === 0}>{badgeCount}</span>
     {/if}
   </button>
 
   {#if open}
-    <div class="enrich-backdrop" on:click={closePanel} role="button" tabindex="-1" aria-label="Close notifications"></div>
-    <div class="enrich-panel" role="dialog" aria-label="Enrichment status">
-      <div class="enrich-panel-header">
+    <div class="notif-backdrop" on:click={closePanel} role="button" tabindex="-1" aria-label="Close notifications"></div>
+    <div class="notif-panel" role="dialog" aria-label="Enrichment notifications">
+      <div class="notif-panel-header">
         <span>Enrichments</span>
-        {#if entries.length > 0}
-          <button class="enrich-panel-close" on:click={closePanel} aria-label="Close">Done</button>
-        {/if}
+        <button class="notif-panel-close" on:click={closePanel} aria-label="Close">Done</button>
       </div>
 
       {#if entries.length === 0}
-        <div class="enrich-panel-empty">
-          <p>No enrichments running.</p>
-          <p class="enrich-panel-empty-hint">Trigger enrichment from Firm Lookup to enrich a firm's profile with AI.</p>
+        <div class="notif-empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+          <p>No enrichments running</p>
+          <p class="notif-empty-hint">Trigger enrichment from Firm Lookup to enrich a firm's profile with AI.</p>
         </div>
       {:else}
-        <div class="enrich-panel-list">
+        <div class="notif-list">
           {#each entries as entry (entry.companyId)}
-            <div class="enrich-panel-item" class:ready={entry.status === 'ready'} class:failed={entry.status === 'failed'}>
-              <div class="enrich-panel-item-main">
-                <div class="enrich-panel-item-name">{entry.companyName ?? `Company ${entry.companyId}`}</div>
-                <div class="enrich-panel-item-status">
+            <div class="notif-item" class:ready={entry.status === 'ready'} class:failed={entry.status === 'failed'}>
+              <div class="notif-item-main">
+                <div class="notif-item-title">{entry.companyName ?? `Company ${entry.companyId}`}</div>
+                <div class="notif-item-meta">
                   {#if entry.status === 'triggering'}
-                    <span class="enrich-status enrich-status-info">Starting...</span>
+                    <span>Starting...</span>
                   {:else if entry.status === 'queued'}
-                    <span class="enrich-status enrich-status-info">Queued...</span>
+                    <span>Queued...</span>
                   {:else if entry.status === 'polling'}
-                    <span class="enrich-status enrich-status-info">
-                      <span class="enrich-status-dot"></span>
+                    <span class="notif-enrich-live">
+                      <span class="notif-dot"></span>
                       {statusLabel(entry.serverStatus)}
                     </span>
                   {:else if entry.status === 'ready'}
-                    <span class="enrich-status enrich-status-success">Ready to review</span>
+                    <span class="notif-enrich-ready">Ready to review</span>
                   {:else if entry.status === 'failed'}
-                    <span class="enrich-status enrich-status-error">{entry.error ?? 'Failed'}</span>
+                    <span class="notif-enrich-error">{entry.error ?? 'Failed'}</span>
                   {:else if entry.status === 'applying'}
-                    <span class="enrich-status enrich-status-info">Applying...</span>
+                    <span>Applying...</span>
                   {:else if entry.status === 'applied'}
-                    <span class="enrich-status enrich-status-success">Applied</span>
+                    <span class="notif-enrich-ready">Applied</span>
                   {/if}
                 </div>
               </div>
-              <div class="enrich-panel-item-actions">
+              <div class="notif-item-actions">
                 {#if entry.status === 'ready'}
-                  <button class="enrich-action enrich-action-primary" on:click={() => handleReview(entry.companyId)}>Review</button>
+                  <button class="notif-action notif-action-primary" on:click={() => handleReview(entry.companyId)}>Review</button>
                 {:else if entry.status === 'failed'}
-                  <button class="enrich-action" on:click={() => handleRetry(entry.companyId)}>Retry</button>
+                  <button class="notif-action" on:click={() => handleRetry(entry.companyId)}>Retry</button>
                 {:else if entry.status === 'applied'}
-                  <button class="enrich-action enrich-action-muted" on:click={() => handleClear(entry.companyId)}>Clear</button>
+                  <button class="notif-action notif-action-muted" on:click={() => handleClear(entry.companyId)}>Clear</button>
                 {/if}
               </div>
             </div>
           {/each}
         </div>
+        <button class="notif-view-all" on:click={viewAll}>View all →</button>
       {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  .enrich-notifications {
-    position: relative;
-  }
-  .enrich-bell {
+  .notif-drawer { position: relative; }
+  .notif-bell {
     position: relative;
     display: flex;
     align-items: center;
@@ -138,11 +134,8 @@
     border-radius: var(--tl-border-radius-md);
     transition: all 150ms;
   }
-  .enrich-bell:hover {
-    background: var(--tl-color-neutral-100);
-    color: var(--tl-color-neutral-700);
-  }
-  .enrich-badge {
+  .notif-bell:hover { background: var(--tl-color-neutral-100); color: var(--tl-color-neutral-700); }
+  .notif-badge {
     position: absolute;
     top: 2px;
     right: 2px;
@@ -159,16 +152,10 @@
     justify-content: center;
     line-height: 1;
   }
-  .enrich-badge.ready {
-    background: #15803d;
-  }
+  .notif-badge.ready { background: #15803d; }
 
-  .enrich-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 998;
-  }
-  .enrich-panel {
+  .notif-backdrop { position: fixed; inset: 0; z-index: 998; }
+  .notif-panel {
     position: absolute;
     top: 42px;
     right: 0;
@@ -181,7 +168,7 @@
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15);
     z-index: 999;
   }
-  .enrich-panel-header {
+  .notif-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -189,33 +176,36 @@
     border-bottom: var(--tl-border-width-thin) solid var(--tl-color-neutral-100);
     font-size: var(--tl-font-size-sm);
     font-weight: var(--tl-font-weight-semibold);
+    position: sticky;
+    top: 0;
+    background: var(--tl-color-surface, #fff);
+    z-index: 1;
   }
-  .enrich-panel-close {
+  .notif-panel-close {
     background: none;
     border: none;
     color: var(--tl-color-brand, #2491eb);
     font-size: var(--tl-font-size-xs);
     cursor: pointer;
   }
-  .enrich-panel-empty {
+
+  .notif-empty {
     padding: var(--tl-spacing-xl) var(--tl-spacing-md);
     text-align: center;
+    color: var(--tl-color-neutral-400);
   }
-  .enrich-panel-empty p {
+  .notif-empty p {
     font-size: var(--tl-font-size-sm);
     color: var(--tl-color-neutral-500);
-    margin: 0;
+    margin: var(--tl-spacing-xs) 0 0;
   }
-  .enrich-panel-empty-hint {
+  .notif-empty-hint {
     font-size: var(--tl-font-size-xs) !important;
-    margin-top: var(--tl-spacing-xs) !important;
     color: var(--tl-color-neutral-400) !important;
   }
-  .enrich-panel-list {
-    display: flex;
-    flex-direction: column;
-  }
-  .enrich-panel-item {
+
+  .notif-list { display: flex; flex-direction: column; }
+  .notif-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -223,48 +213,41 @@
     padding: var(--tl-spacing-sm) var(--tl-spacing-md);
     border-bottom: var(--tl-border-width-thin) solid var(--tl-color-neutral-100);
   }
-  .enrich-panel-item:last-child { border-bottom: none; }
-  .enrich-panel-item.ready { background: #f0fdf4; }
-  .enrich-panel-item.failed { background: #fef2f2; }
-  .enrich-panel-item-main {
-    flex: 1;
-    min-width: 0;
-  }
-  .enrich-panel-item-name {
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item.ready { background: #f0fdf4; }
+  .notif-item.failed { background: #fef2f2; }
+
+  .notif-item-main { flex: 1; min-width: 0; }
+  .notif-item-title {
     font-size: var(--tl-font-size-sm);
     font-weight: var(--tl-font-weight-medium);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .enrich-panel-item-status {
+  .notif-item-meta {
+    display: flex;
+    gap: var(--tl-spacing-xs);
     margin-top: 2px;
-  }
-  .enrich-status {
     font-size: var(--tl-font-size-xs);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    color: var(--tl-color-neutral-500);
   }
-  .enrich-status-info { color: var(--tl-color-neutral-500); }
-  .enrich-status-success { color: #15803d; font-weight: var(--tl-font-weight-medium); }
-  .enrich-status-error { color: #dc2626; }
-  .enrich-status-dot {
+
+  .notif-enrich-live { display: inline-flex; align-items: center; gap: 4px; }
+  .notif-enrich-ready { color: #15803d; font-weight: var(--tl-font-weight-medium); }
+  .notif-enrich-error { color: #dc2626; }
+  .notif-dot {
     display: inline-block;
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: var(--tl-color-brand, #2491eb);
-    animation: enrich-pulse 1.5s ease-in-out infinite;
+    animation: notif-pulse 1.5s ease-in-out infinite;
   }
-  @keyframes enrich-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .enrich-panel-item-actions {
-    flex-shrink: 0;
-  }
-  .enrich-action {
+  @keyframes notif-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .notif-item-actions { flex-shrink: 0; }
+  .notif-action {
     padding: var(--tl-spacing-xs) var(--tl-spacing-sm);
     border: var(--tl-border-width-thin) solid var(--tl-color-neutral-200);
     border-radius: var(--tl-border-radius-md);
@@ -274,23 +257,30 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .enrich-action:hover {
-    border-color: var(--tl-color-brand, #2491eb);
-    color: var(--tl-color-brand, #2491eb);
-  }
-  .enrich-action-primary {
+  .notif-action:hover { border-color: var(--tl-color-brand, #2491eb); color: var(--tl-color-brand, #2491eb); }
+  .notif-action-primary {
     background: var(--tl-color-brand, #2491eb);
     border-color: var(--tl-color-brand, #2491eb);
     color: #fff;
   }
-  .enrich-action-primary:hover {
-    background: #1a7dd4;
-    color: #fff;
+  .notif-action-primary:hover { background: #1a7dd4; color: #fff; }
+  .notif-action-muted { color: var(--tl-color-neutral-400); }
+
+  .notif-view-all {
+    display: block;
+    width: 100%;
+    padding: var(--tl-spacing-sm) var(--tl-spacing-md);
+    border: none;
+    border-top: var(--tl-border-width-thin) solid var(--tl-color-neutral-100);
+    background: var(--tl-color-neutral-50);
+    text-align: center;
+    font-size: var(--tl-font-size-xs);
+    color: var(--tl-color-brand, #2491eb);
+    cursor: pointer;
   }
-  .enrich-action-muted {
-    color: var(--tl-color-neutral-400);
-  }
+  .notif-view-all:hover { text-decoration: underline; }
+
   @media (prefers-reduced-motion: reduce) {
-    .enrich-status-dot { animation: none; }
+    .notif-dot { animation: none; }
   }
 </style>

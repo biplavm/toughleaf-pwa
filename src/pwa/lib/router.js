@@ -1,8 +1,8 @@
 let listeners = [];
-let current = window.location.hash.slice(1) || '/dashboard';
+let current = (window.location.hash.slice(1) || '/dashboard').split('?')[0];
 
 window.addEventListener('hashchange', () => {
-  current = window.location.hash.slice(1) || '/dashboard';
+  current = (window.location.hash.slice(1) || '/dashboard').split('?')[0];
   listeners.forEach((fn) => fn(current));
 });
 

@@ -15,6 +15,7 @@
   import ProfilePage from './pages/ProfilePage.svelte';
   import SettingsPage from './pages/SettingsPage.svelte';
   import ReportsPage from './pages/ReportsPage.svelte';
+  import NotificationsPage from './pages/NotificationsPage.svelte';
 
   let route;
   let session = null;
@@ -61,6 +62,7 @@
       '/profile': 'Profile',
       '/settings': 'Settings',
       '/reports': 'Reports',
+      '/notifications': 'Notifications',
     };
     return titles[r] ?? 'Dashboard';
   }
@@ -110,6 +112,8 @@
             <SettingsPage />
           {:else if route === '/reports'}
             <ReportsPage />
+          {:else if route === '/notifications'}
+            <NotificationsPage />
           {:else}
             <DashboardPage />
           {/if}

@@ -142,9 +142,11 @@ async function startEnrichment(companyId, companyName, website) {
       startPolling(companyId);
     }
   } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Could not start enrichment';
+    console.error('[enrichment] trigger failed for', companyId, ':', msg, e);
     setState(companyId, {
       status: 'failed',
-      error: e instanceof Error ? e.message : 'Could not start enrichment',
+      error: msg,
     });
     processQueue();
   }
